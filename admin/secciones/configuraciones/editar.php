@@ -13,7 +13,6 @@ editar configuraciones
         $sentencia=$conexion->prepare("SELECT * FROM `tbl_confifiguraciones` WHERE id=:id");
     
         $sentencia->bindParam(":id",$txtID);
-       
     
         $sentencia->execute();
     
@@ -23,9 +22,6 @@ editar configuraciones
     
         $nombreConfiguracion=$registro['nombreConfiguracion'];
         $valor=$registro['valor'];
-        
-       
-    
     }
 
     if($_POST){
@@ -35,9 +31,6 @@ editar configuraciones
         $nombreConfiguracion=(isset($_POST['nombreConfiguracion']))?$_POST['nombreConfiguracion']:"";
         $valor=(isset($_POST['valor']))?$_POST['valor']:"";
       
-        
-
-
         $sentencia=$conexion->prepare("UPDATE tbl_confifiguraciones 
         SET 
         nombreConfiguracion= :nombreConfiguracion,
