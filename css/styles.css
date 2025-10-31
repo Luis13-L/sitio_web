@@ -8264,10 +8264,10 @@ textarea.form-control-lg {
   border-radius: var(--bs-border-radius-2xl) !important;
 }
 
-.rounded-circle {
+/*.rounded-circle {
   border-radius: 50% !important;
 }
-
+*/
 .rounded-pill {
   border-radius: var(--bs-border-radius-pill) !important;
 }
@@ -10877,9 +10877,8 @@ p {
 }
 
 #mainNav {
-  padding-top: 1rem;
-  padding-bottom: 1rem;
-  background-color: #212529;
+  background-color: transparent;
+  transition: background-color .2s ease, box-shadow .2s ease, padding .2s ease;
 }
 #mainNav .navbar-toggler {
   padding: 0.75rem;
@@ -10934,7 +10933,7 @@ p {
   }
   #mainNav.navbar-shrink .navbar-brand svg,
   #mainNav.navbar-shrink .navbar-brand img {
-    height: 1.5rem;
+    height: 4.5rem;
   }
   #mainNav .navbar-nav .nav-item {
     margin-right: 1rem;
@@ -10948,7 +10947,7 @@ header.masthead {
   padding-bottom: 6rem;
   text-align: center;
   color: #fff;
-  background-image: url("../assets/img/header-bg.jpg");
+  
   background-repeat: no-repeat;
   background-attachment: scroll;
   background-position: center center;
@@ -11071,12 +11070,12 @@ header.masthead .masthead-heading {
   opacity: 0.3;
 }
 
-.timeline {
+/*.timeline {
   position: relative;
   padding: 0;
   list-style: none;
 }
-.timeline:before {
+ .timeline:before {
   position: absolute;
   top: 0;
   bottom: 0;
@@ -11085,8 +11084,8 @@ header.masthead .masthead-heading {
   margin-left: -1.5px;
   content: "";
   background-color: #e9ecef;
-}
-.timeline > li {
+} */
+/*.timeline > li {
   position: relative;
   min-height: 50px;
   margin-bottom: 50px;
@@ -11237,7 +11236,7 @@ header.masthead .masthead-heading {
   .timeline > li.timeline-inverted > .timeline-panel {
     padding: 0 100px 20px 20px;
   }
-}
+}*/
 .team-member {
   margin-bottom: 3rem;
   text-align: center;
@@ -11258,7 +11257,7 @@ header.masthead .masthead-heading {
 
 section#contact {
   background-color: #212529;
-  background-image: url("../assets/img/map-image.png");
+  /*background-image: url("../assets/img/foo-image2.jpg");*/
   background-repeat: no-repeat;
   background-position: center;
 }
@@ -11316,3 +11315,569 @@ section#contact form#contactForm :-ms-input-placeholder {
   font-family: "Montserrat", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
 
+
+
+/* Contenedor que fija un cuadro 4:3 y recorta elegante */
+.thumb-4x3{
+  width: 100%;
+  aspect-ratio: 4 / 3;   /* asegura 2x2 prolijo sin depender de Bootstrap .ratio */
+  overflow: hidden;
+  border-radius: .5rem;
+  background: #f3f4f6;   /* fondo por si la imagen tarda */
+}
+
+/* La imagen llena el cuadro sin deformarse */
+.thumb-img{
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;     /* cubre el área recortando lo que sobra */
+}
+
+/* Tarjeta uniforme */
+.portfolio-card{
+  border: 1px solid rgba(0,0,0,.08);
+  border-radius: .75rem;
+  overflow: hidden;
+}
+
+/* Imagen del modal: que se vea completa sin recorte agresivo */
+.modal-img{
+  width: 100%;
+  height: auto;
+  max-height: 70vh;
+  object-fit: contain;
+}
+/* --- Grid: imagen uniforme --- */
+.portfolio-item .img-fluid{
+  width: 100%;
+  height: 240px;          /* alto uniforme */
+  object-fit: cover;      /* rellena sin deformar */
+  display: block;
+}
+
+/* --- Contenedor posicionado para el overlay --- */
+.portfolio-item .portfolio-link{
+  position: relative;
+  display: block;
+  overflow: hidden;       /* recorta overlay a los bordes */
+  border-radius: .5rem;   /* mismo radio que la imagen (opcional) */
+}
+
+/* --- Overlay hover (vuelve a la vida) --- */
+.portfolio-item .portfolio-hover{
+  position: absolute;
+  inset: 0;               /* top/right/bottom/left = 0 */
+  background: rgba(33, 150, 243, 0.85); /* azul translúcido, ajusta a tu theme */
+  opacity: 0;
+  transition: opacity .2s ease-in-out;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;             /* por encima de la imagen */
+}
+
+.portfolio-item .portfolio-hover-content{
+  color: #fff;
+  transform: translateY(6px);
+  transition: transform .2s ease-in-out;
+}
+
+.portfolio-item .portfolio-link:hover .portfolio-hover{
+  opacity: 1;
+}
+.portfolio-item .portfolio-link:hover .portfolio-hover-content{
+  transform: translateY(0);
+}
+
+/* Obliga tamaño del logo en la barra */
+#mainNav.navbar .navbar-brand .logo-nav{
+  height: 60px !important;     /* ajusta aquí (ej. 90px, 100px) */
+  width: auto !important;
+  max-height: none !important;
+  object-fit: contain;
+  display: block;
+}
+
+/* Si no pusiste clase, usa este selector alternativo: */
+/* #mainNav.navbar .navbar-brand img{ height:84px !important; width:auto !important; max-height:none !important; } */
+
+/* Da espacio vertical a la barra para que no aplaste el logo */
+#mainNav.navbar{
+  padding-top: .35rem !important;
+  padding-bottom: .35rem !important;
+  min-height: 80px;  /* un poco más que el height del logo */
+}
+
+/* A veces el brand trae max-height; lo anulamos */
+#mainNav .navbar-brand{
+  line-height: 1 !important;
+  padding-top: .25rem !important;
+  padding-bottom: .25rem !important;
+}
+
+/* Menú alineado con el logo grande */
+#mainNav .navbar-nav .nav-link{
+  padding-top: .5rem !important;
+  padding-bottom: .5rem !important;
+}
+
+/* En móviles, bájalo un poco para que no choque con el toggler */
+@media (max-width: 991.98px){
+  #mainNav.navbar .navbar-brand .logo-nav{
+    height: 64px !important;
+  }
+  #mainNav.navbar{
+    min-height: 72px;
+  }
+}
+/* Estado inicial arriba (transparente) */
+#mainNav{
+  background-color: transparent;
+  transition: background-color .2s ease, box-shadow .2s ease, padding .2s ease, backdrop-filter .2s ease;
+}
+
+/* Al bajar: un blanco más oscuro (gris MUY claro) */
+#mainNav.navbar-shrink{
+  /* elige UNA de estas tres opciones: */
+
+  /* Opción 1: gris claro fijo */
+  /*background-color: rgb(245, 245, 245);               /* más oscuro que blanco puro */
+
+  /* Opción 2: blanco con leve transparencia + blur (bonito efecto glass)*/
+  background-color: rgba(255, 255, 255, .75);
+  backdrop-filter: saturate(120%) blur(6px);
+  
+
+  /* Opción 3: color Bootstrap gris claro
+  background-color: #f8f9fa;
+  */
+
+  box-shadow: 0 .35rem .9rem rgba(0,0,0,.10);
+}
+
+/* Texto sobre el fondo más oscuro */
+#mainNav.navbar-shrink .navbar-brand,
+#mainNav.navbar-shrink .nav-link,
+#mainNav.navbar-shrink .fa-bars{
+  color: #1f2937 !important; /* un poco más oscuro que #212529 */
+}
+
+/* Estados de hover/activo */
+#mainNav.navbar-shrink .nav-link:hover,
+#mainNav.navbar-shrink .nav-link:focus,
+#mainNav.navbar-shrink .nav-link.active{
+  color: #0d6efd !important;
+}
+
+/* Botón hamburguesa en estado shrink */
+#mainNav.navbar-shrink .navbar-toggler{
+  color: #1f2937;
+  border-color: rgba(31,41,55,.3);
+}
+.btn-empezar{ background:#1e3a8a; border-color:#1e3a8a; color:#fff; }
+.btn-empezar:hover{ background:#1a3278; border-color:#1a3278; color:#fff; }
+.btn-empezar:active{ background:#162b66; border-color:#162b66; color:#fff; }
+
+/* Titular y subtítulo del hero en blanco “oscuro” */
+header.masthead .masthead-heading{
+  color: rgba(255,255,255,.75); /* casi blanco, mejor legibilidad */
+}
+header.masthead .masthead-subheading{
+  color: rgba(255,255,255,.85); /* un poco más tenue */
+}
+/* Ajusta estas variables a tu navbar real */
+:root{
+  --nav-h-mobile: 64px;   /* alto aprox. de tu navbar en móvil (logo grande + padding) */
+  --nav-h-desktop: 90px;  /* si la usas, por ahora no la necesitamos */
+}
+
+/* Hero de ancho completo siempre */
+header.masthead{
+  background-position: center center;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
+/* 1) Nunca permitir desbordes horizontales */
+html, body{
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
+}
+
+/* 2) Asegurar que los contenedores del navbar no excedan el viewport */
+#mainNav .container,
+header.masthead > .container{
+  max-width: 100%;
+}
+
+/* 3) Hero (masthead) de ANCHO COMPLETO real, aunque haya padding de .container */
+header.masthead{
+  background-position: center center;
+  background-size: cover;
+  background-repeat: no-repeat;
+
+  /* truco full-bleed: ocupa 100vw y “rompe” el padding lateral del layout */
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+}
+
+/* 4) En móviles: que ocupe la pantalla completa y no quede espacio bajo la navbar fija */
+@media (max-width: 991.98px){
+  header.masthead{
+    min-height: 100dvh; /* alto completo moderno */
+    padding-top: 80px !important; /* ajusta al alto de tu navbar en móvil */
+  }}
+  /* --- Hero: asegurar que el contenido no se corte en móvil --- */
+header.masthead > .container{
+  /* un poco más de aire a los lados en pantallas angostas */
+  padding-left: 1rem !important;
+  padding-right: 1rem !important;
+  overflow: visible !important;     /* evita cortes por overflow accidental */
+}
+
+/* Variables opcionales para reutilizar */
+:root{
+  --font-heading: "Montserrat", "Segoe UI", Roboto, Arial, sans-serif;
+  --font-body: "Roboto Slab", Georgia, "Times New Roman", serif;
+}
+
+/* TÍTULO del hero (misma tipografía y estilo del theme) */
+header.masthead .masthead-heading{
+  font-family: var(--font-heading);
+  font-weight: 900;                 /* bien fuerte como el H1 del theme */
+  text-transform: uppercase;        /* todo en mayúsculas */
+  letter-spacing: .03em;            /* leve tracking como en el estilo base */
+  /* tamaños responsivos (ya lo venías usando) */
+  font-size: clamp(1.8rem, 8vw, 3.25rem);
+  line-height: 1.15;
+}
+
+/* SUBTÍTULO del hero (mismo estilo sutil del theme) */
+header.masthead .masthead-subheading{
+  font-family: var(--font-heading); /* Agency usa Montserrat también aquí */
+  font-weight: 500;                 /* medio */
+  font-style: italic;               /* si quieres el toque “italic” del demo */
+  letter-spacing: .02em;
+  font-size: clamp(1rem, 4.5vw, 1.25rem);
+  line-height: 1.35;
+  color: rgba(255,255,255,.75);     /* tu “blanco gris” */
+}
+
+/* Botón “Empezar” hereda heading para verse consistente */
+header.masthead .btn{
+  font-family: var(--font-heading);
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+/* Ajusta al alto real de tu navbar fija */
+:root{
+  --nav-h-mobile: 72px;   /* si tu logo es grande en móvil, ajusta 64–88px */
+  --nav-h-desktop: 90px;  /* si necesitas compensar en desktop */
+}
+/* Hero: ocupar pantalla y centrar verticalmente el contenido */
+header.masthead{
+  display: flex;
+  align-items: center;                 /* centra verticalmente */
+  min-height: 100dvh;                  /* alto pantalla (compatible móviles) */
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  /* compensar la navbar fixed-top para que no tape el contenido */
+  padding-top: calc(var(--nav-h-desktop) + 1rem);
+  padding-bottom: 2rem;
+}
+
+/* En móvil, usa la altura de navbar móvil */
+@media (max-width: 991.98px){
+  header.masthead{
+    padding-top: calc(var(--nav-h-mobile) + 1rem);
+    padding-bottom: 2rem;
+  }
+  /* opcional: centra el texto y el botón en móvil */
+  header.masthead .masthead-subheading,
+  header.masthead .masthead-heading,
+  header.masthead .btn{
+    text-align: center;
+    margin-left: auto; margin-right: auto;
+  }
+}
+
+/* Evita que el container meta rellenos raros */
+header.masthead > .container{
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+/* =========================
+   TIMELINE 100% FUNCIONAL
+   ========================= */
+
+/* ===== Ajustes base/variables ===== */
+:root{
+  --tl-size-desktop: 144px;               /* diámetro del círculo en desktop */
+  --tl-size-mobile:  72px;                /* diámetro en móvil */
+  --gap:             28px;                /* separación círculo ↔ tarjeta */
+  --center-col: calc(var(--tl-size-desktop) + var(--gap)*2);
+}
+
+/* Línea central */
+#about .timeline{
+  position: relative; padding: 2rem 0; list-style: none;
+}
+#about .timeline::before{
+  content:""; position:absolute; top:0; bottom:0; left:50%;
+  width:2px; background: linear-gradient(180deg, rgba(0,0,0,.15), rgba(0,0,0,.05));
+}
+
+/* Cada ítem = grid 3 columnas: [izq | canal | der] */
+#about .timeline > li{
+  display: grid !important;
+  grid-template-columns: minmax(0,1fr) var(--center-col) minmax(0,1fr);
+  grid-auto-rows: minmax(var(--tl-size-desktop), auto) !important;  /* alto mín. = círculo */
+  align-items: center !important;    /* CENTRA círculo y tarjeta verticalmente */
+  gap: 0;
+  margin: 1.75rem 0;
+  position: relative;
+}
+
+/* Círculo SIEMPRE en la columna del medio */
+#about .timeline > li .timeline-image{
+  grid-column: 2; justify-self: center;
+  width: var(--tl-size-desktop); height: var(--tl-size-desktop);
+  border-radius: 50%; overflow: hidden;
+  border: 4px solid #fff; box-shadow: 0 6px 16px rgba(0,0,0,.12);
+  background: #f3f4f6; position: relative; z-index: 2;
+}
+#about .timeline > li .timeline-image > img{
+  position: absolute; inset: 0;
+  width: 100% !important; height: 100% !important;
+  object-fit: cover !important; object-position: center !important;
+  display: block !important; border-radius: 0 !important;
+}
+/* quita adornos del theme si los hubiera */
+#about .timeline .timeline-image::before,
+#about .timeline .timeline-image::after{ display: none !important; }
+
+/* Tarjeta (panel) – anulamos floats heredados y centramos */
+#about .timeline > li .timeline-panel{
+  grid-column: 1;                  /* por defecto a la IZQUIERDA */
+  background: #fff; border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.06);
+  padding: 1.25rem 1.25rem 1rem;
+  min-height: var(--tl-size-desktop) !important; /* igual altura mínima que el círculo */
+  align-self: center !important;   /* CENTRADA vs círculo */
+  margin: 0 !important;
+  float: none !important;
+  width: auto !important;
+}
+#about .timeline > li.timeline-inverted .timeline-panel{
+  grid-column: 3;                  /* a la DERECHA si es inverted */
+}
+
+/* Tipografía fina */
+#about .timeline .timeline-heading h4{ margin: 0 0 .35rem; font-weight: 700; }
+#about .timeline .timeline-heading .subheading{ margin: 0 0 .5rem; }
+
+/* ===== Responsive: móvil/tablet → imagen izq + texto der ===== */
+@media (max-width: 991.98px){
+  #about .timeline::before{ left: 36px; }
+  #about .timeline > li{
+    grid-template-columns: 84px 1fr;       /* 84 ≈ 72 + respiro */
+    grid-auto-rows: auto !important;
+    align-items: start !important;
+  }
+  #about .timeline > li .timeline-image{
+    grid-column: 1; justify-self: center;
+    width: var(--tl-size-mobile); height: var(--tl-size-mobile);
+  }
+  #about .timeline > li .timeline-panel{
+    grid-column: 2; min-height: auto !important;
+  }
+}
+.service-icon img{
+  width: clamp(140px, 13vw, 128px);
+  height: clamp(140px, 13vw, 128px);
+  object-fit: contain;
+  object-position: center;
+  border-radius: 8px;
+}
+/* Forzar tamaño y centrado del texto dentro del círculo final */
+section#about ul.timeline li.timeline-inverted:last-child > .timeline-image{
+  --circle: 180px;
+  width: var(--circle);
+  height: var(--circle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: calc(var(--circle) / 12);
+  box-sizing: border-box;
+  text-align: center;
+  overflow: hidden;
+}
+
+section#about ul.timeline li.timeline-inverted:last-child > .timeline-image > h4{
+  margin: 0 !important;
+  line-height: 1.2 !important;
+  font-weight: 700 !important;
+  text-transform: none !important;
+  word-break: break-word !important;
+  hyphens: auto !important;
+  width: 100% !important;
+
+  /* fuerza el tamaño (ajústalo) */
+  font-size: 16px !important;
+}
+
+/* móvil */
+@media (max-width: 576px){
+  section#about ul.timeline li.timeline-inverted:last-child > .timeline-image{
+    --circle: 90px;
+    padding: 12px;
+  }
+  section#about ul.timeline li.timeline-inverted:last-child > .timeline-image > h4{
+    font-size: 14px !important;
+  }
+}
+/* Avatar del equipo: círculo perfecto, sin deformar */
+.team-avatar{
+  /* tamaño adaptable: mínimo 160px, luego escala con la pantalla, máx 220px */
+  width: clamp(160px, 18vw, 220px);
+  aspect-ratio: 1 / 1;        /* cuadrado perfecto */
+  border-radius: 50%;         /* círculo */
+  object-fit: cover;          /* rellena sin estirar */
+  object-position: center;    /* centra el recorte */
+  display: block;             /* elimina espacio inline */
+  border: 8px solid #f8f9fa;  /* aro claro (como el tema) */
+  box-shadow: 0 10px 24px rgba(0,0,0,.08);
+}
+
+/* Ajustes de tipografía y espacios */
+#team .team-member h4{
+  font-weight: 700;
+}
+#team .team-member p{
+  margin-bottom: 0.75rem;
+}
+
+/* Botones sociales: consistentes */
+.btn-social{
+  width: 44px; height: 44px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+
+/* Contacto full bleed */
+#contact.contact-full{ padding:0; }
+#contact .contact-hero{
+  width: 100%;
+  min-height: 48vh;                 /* alto visible; sube/baja a gusto */
+  background-image: url("../assets/img/foo-image2.jpg"); /* tu imagen */
+  background-position: center center;
+  background-size: cover;           /* ocupa todo el ancho manteniendo proporción */
+  background-repeat: no-repeat;
+  position: relative;
+}
+
+/* Oscurecer un poco para mejorar legibilidad del texto */
+#contact .contact-hero::after{
+  content:"";
+  position:absolute; inset:0;
+  background: rgba(0,0,0,.35);      /* ajusta opacidad si quieres */
+}
+
+#contact .contact-hero__inner{
+  position: relative;               /* sobre el overlay */
+  max-width: 1140px;                /* ancho de contenido */
+  margin: 0 auto;
+  padding: 96px 16px;               /* espacio interno */
+}
+
+#contact .text-white{ color:#fff; }
+#contact .section-subheading{ color: rgba(255,255,255,.85); }
+#contact .headline-badge{
+  display:inline-block;
+  padding: .35rem .75rem;
+  border-radius: 999px;
+  background: rgba(0,0,0,.45);
+  color:#fff;
+  backdrop-filter: blur(2px); /* opcional */
+}
+/* Hacer que el título y subtítulo se apilen (uno sobre otro) */
+#contact .headline-badge{
+  display: block;                 /* apila */
+  width: fit-content;             /* cápsula solo del ancho del texto */
+  margin: .25rem auto;            /* centrado horizontal */
+  padding: .35rem .75rem;         /* mismo padding que ya venías usando */
+  border-radius: 999px;
+  background: rgba(0,0,0,.45);
+  color: #fff;
+  backdrop-filter: blur(2px);     /* opcional */
+}
+
+/* Opcional: tamaños y espaciado */
+#contact .section-heading.headline-badge{
+  margin-top: .25rem;
+  font-weight: 800;
+}
+#contact .section-subheading.headline-badge{
+  margin-top: .35rem;
+  color: rgba(255,255,255,.9);
+  font-weight: 500;
+}
+/* Tamaño de las letras en CONTACTO */
+#contact .section-heading.headline-badge{
+  font-size: clamp(1.25rem, 3.2vw, 2.25rem); /* ~20px → 36px */
+  letter-spacing: .02em;
+  font-weight: 800;
+}
+
+#contact .section-subheading.headline-badge{
+  font-size: clamp(.95rem, 2.2vw, 1.25rem);  /* ~15px → 20px */
+  font-weight: 500;
+  color: rgba(255,255,255,.92);
+}
+#contact .section-heading.headline-badge{ font-size: clamp(1.25rem,3.2vw,2.25rem) !important; }
+#contact .section-subheading.headline-badge{ font-size: clamp(.95rem,2.2vw,1.25rem) !important; }
+
+/* Usa el mismo azul del botón primario (EMPEZAR) */
+:root{ --brand-blue: #1f4db8; /* tu azul del botón */ }
+/* Links del paginado */
+.pagination .page-link{
+  color: var(--brand-blue);
+  border-color: #e9ecef;
+}
+
+/* Hover */
+.pagination .page-link:hover{
+  color: var(--brand-blue-dark);
+  background-color: color-mix(in srgb, var(--brand-blue), #fff 92%);
+  border-color: #dee2e6;
+  text-decoration: none;
+}
+
+/* Activo */
+.pagination .page-item.active .page-link{
+  color: #fff;
+  background-color: var(--brand-blue);
+  border-color: var(--brand-blue);
+}
+
+/* Focus */
+.pagination .page-link:focus{
+  box-shadow: 0 0 0 .2rem color-mix(in srgb, var(--brand-blue), transparent 75%);
+}
+
+/* Deshabilitado */
+.pagination .page-item.disabled .page-link{
+  color: #adb5bd;
+  background-color: #fff;
+  border-color: #e9ecef;
+}
+#mainNav .navbar-nav .nav-link{
+  font-weight: 700;              /* negrita */
+}
