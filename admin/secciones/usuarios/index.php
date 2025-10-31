@@ -1,71 +1,76 @@
-listr usuarios
-
 <?php
+include("../../bd.php");
+include("../../templates/header.php");
 
-    include("../../templates/header.php");
-    include("../../bd.php");
+// (Opcional pero recomendado) Solo admin puede ver/gestionar usuarios
+// require_once __DIR__ . "/../auth_guard.php";
 
-    if(isset($_GET['txtID'])){
-        //borar un servicio
-
-        $txtID=(isset($_GET['txtID']) )?$_GET['txtID']:"";
-
-        $sentencia=$conexion->prepare("DELETE FROM `tbl_usuarios` WHERE id=:id");
-
-        $sentencia->bindParam(":id",$txtID);
-       
-    
-        $sentencia->execute();
-    }
-        //Seleccionar registros
-        $sentencia=$conexion->prepare("SELECT * FROM `tbl_usuarios`");
-        $sentencia->execute();
-        $lista_usuario=$sentencia->fetchAll(PDO::FETCH_ASSOC);
+// Obtener usuarios (NO seleccionar password)
+$st = $conexion->prepare("SELECT ID, usuario, correo, rol, is_active, created_at FROM tbl_usuarios ORDER BY ID");
+$st->execute();
+$usuarios = $st->fetchAll(PDO::FETCH_ASSOC);
 ?>
-<div class="card">
-    <div class="card-header">
-    <a name="" id="" class="btn btn-primary" href="crear.php" role="button">Agregar registro</a>
-        
-    </div>
-    <div class="card-body">
-    <div class="table-responsive-sm">
-    <table class="table">
-        <thead>
-            <tr>
-                <th scope="col">ID</th>
-                <th scope="col">Usuario</th>
-                <th scope="col">Correo</th>
-                <th scope="col">Contraseña</th>
-                <th scope="col">Acciones</th>
 
-            </tr>
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <a class="btn btn-primary" href="crear.php">Agregar registro</a>
+    <strong>Usuarios</strong>
+  </div>
+
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table align-middle">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Usuario</th>
+            <th>Correo</th>
+            <th>Contraseña</th>
+            <th>Rol</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
         </thead>
         <tbody>
-        <?php foreach ($lista_usuario as $registros){ ?>
-            <tr class="">
-                <td><?php echo $registros['ID'];?></td>
-                <td><?php echo $registros['usuario'];?></td>
-                <td><?php echo $registros['correo'];?></td>
-                <td><?php echo $registros['password'];?></td>
-                <td>
-                    
-                <a name="" id="" class="btn btn-info" href="editar.php?txtID=<?php echo $registros['ID']; ?>" role="button">Editar</a>
-                <a name="" id="" class="btn btn-danger" href="index.php?txtID=<?php echo $registros['ID']; ?>" role="button">Eliminar</a>
-                </td>
-            </tr>
-        <?php } ?>
+          <?php foreach ($usuarios as $u): ?>
+          <tr>
+            <td><?= (int)$u['ID'] ?></td>
+            <td><?= htmlspecialchars($u['usuario']) ?></td>
+            <td><?= htmlspecialchars($u['correo']) ?></td>
+
+            <!-- NUNCA muestres el hash. Solo un placeholder -->
+            <td><span class="text-muted">••••••••</span></td>
+
+            <td>
+              <?php if ($u['rol'] === 'admin'): ?>
+                <span class="badge bg-primary">admin</span>
+              <?php else: ?>
+                <span class="badge bg-secondary">user</span>
+              <?php endif; ?>
+            </td>
+
+            <td>
+              <?php if ((int)$u['is_active'] === 1): ?>
+                <span class="badge bg-success">Activo</span>
+              <?php else: ?>
+                <span class="badge bg-danger">Inactivo</span>
+              <?php endif; ?>
+            </td>
+
+            <td class="d-flex gap-2">
+              <a class="btn btn-info btn-sm" href="editar.php?txtID=<?= (int)$u['ID'] ?>">Editar</a>
+
+              <!-- Sugerencia: elimina con POST + CSRF; si mantienes GET, al menos pide confirmación -->
+              <a class="btn btn-danger btn-sm"
+                 href="index.php?txtID=<?= (int)$u['ID'] ?>"
+                 onclick="return confirm('¿Eliminar este usuario?');">Eliminar</a>
+            </td>
+          </tr>
+          <?php endforeach; ?>
         </tbody>
-    </table>
-</div>
+      </table>
     </div>
-    <div class="card-footer text-muted">
-        
-    </div>
+  </div>
 </div>
 
-
-
-<?php
-
-    include("../../templates/footer.php");
-?>
+<?php include("../../templates/footer.php"); ?>

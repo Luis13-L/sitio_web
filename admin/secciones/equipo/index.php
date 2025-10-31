@@ -1,109 +1,127 @@
-listr equipo
-
 <?php
+include("../../bd.php");
+include("../../templates/header.php");
 
-    include("../../templates/header.php");
-    include("../../bd.php");
+/* ---- ELIMINAR: borra archivo + registro y redirige con mensaje ---- */
+if (isset($_GET['txtID']) && is_numeric($_GET['txtID'])) {
+  $txtID = (int)$_GET['txtID'];
 
-    if(isset($_GET['txtID'])){
+  // traer filename
+  $st = $conexion->prepare("SELECT imagen FROM `tbl_equipo` WHERE id = :id");
+  $st->bindParam(":id", $txtID, PDO::PARAM_INT);
+  $st->execute();
+  $row = $st->fetch(PDO::FETCH_ASSOC);
 
-    
-        $txtID=(isset($_GET['txtID']) )?$_GET['txtID']:"";
+  if ($row) {
+    $file = __DIR__ . "/../../../assets/img/team/" . $row['imagen'];
+    if (is_file($file)) { @unlink($file); }
 
-        //borrado de imagen
+    $del = $conexion->prepare("DELETE FROM `tbl_equipo` WHERE id = :id");
+    $del->bindParam(":id", $txtID, PDO::PARAM_INT);
+    $del->execute();
 
-        $sentencia=$conexion->prepare("SELECT imagen FROM `tbl_equipo` WHERE id=:id");
-        $sentencia->bindParam(":id",$txtID);
-        $sentencia->execute();
+    header("Location: index.php?mensaje=" . urlencode("Registro eliminado."));
+    exit;
+  }
+}
 
-        $registro_imagen=$sentencia->fetch(PDO::FETCH_LAZY);
+/* ---- LISTAR ---- */
+$st = $conexion->prepare("SELECT * FROM `tbl_equipo` ORDER BY id DESC");
+$st->execute();
+$lista_equipo = $st->fetchAll(PDO::FETCH_ASSOC);
 
-        if(isset($registro_imagen["imagen"])){
-
-            if(file_exists("../../../assets/img/team/".$registro_imagen["imagen"])){
-
-                unlink("../../../assets/img/team/".$registro_imagen["imagen"]);
-            }
-
-
-        }
-
-
-        //botrrar registro
-        $sentencia=$conexion->prepare("DELETE FROM `tbl_equipo` WHERE id=:id");
-        $sentencia->bindParam(":id",$txtID);
-        $sentencia->execute();
-
-    }
-
-
-
-    //SELECCIONAR LOS REGISTROS (LISTAR)
-    $sentencia=$conexion->prepare("SELECT * FROM `tbl_equipo`");
-    $sentencia->execute();
-    $lista_entradas=$sentencia->fetchAll(PDO::FETCH_ASSOC);
+$mensaje = isset($_GET['mensaje']) ? $_GET['mensaje'] : '';
 ?>
 
 <div class="card">
-    <div class="card-header">
-    <a name="" id="" class="btn btn-primary" href="crear.php" role="button">Agregar registro</a>
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>Equipo</span>
+    <a class="btn btn-primary" href="crear.php" role="button">Agregar registro</a>
+  </div>
 
+  <div class="card-body">
+    <?php if ($mensaje): ?>
+      <div class="alert alert-success py-2 mb-3"><?= htmlspecialchars($mensaje) ?></div>
+    <?php endif; ?>
+
+    <div class="table-responsive-sm">
+      <table class="table align-middle">
+        <thead>
+          <tr>
+            <th scope="col" style="width:70px;">ID</th>
+            <th scope="col" style="width:130px;">Imagen</th>
+            <th scope="col" style="min-width:260px;">Nombre y puesto</th>
+            <th scope="col" style="min-width:260px;">Contacto</th>
+            <th scope="col" style="width:180px;">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+        <?php foreach ($lista_equipo as $reg): ?>
+          <?php
+            $id    = (int)$reg['ID'];
+            $img   = htmlspecialchars($reg['imagen'] ?? '');
+            $nom   = htmlspecialchars($reg['nombrecompleto'] ?? '');
+            $puesto= htmlspecialchars($reg['puesto'] ?? '');
+            $mail  = trim($reg['correo'] ?? '');
+            $link  = trim($reg['linkedin'] ?? '');
+          ?>
+          <tr>
+            <td><?= $id ?></td>
+
+            <td>
+              <?php if ($img): ?>
+                <img
+                  src="../../../assets/img/team/<?= $img ?>"
+                  alt="<?= $nom ?>"
+                  style="width:88px;height:88px;object-fit:cover;border-radius:8px;border:1px solid #e5e7eb;">
+              <?php else: ?>
+                <span class="text-muted">Sin imagen</span>
+              <?php endif; ?>
+            </td>
+
+            <td>
+              <div class="fw-semibold"><?= $nom ?></div>
+              <div class="text-muted small"><?= $puesto ?></div>
+            </td>
+
+            <td>
+              <?php if ($mail): ?>
+                <div class="small">
+                  <i class="fa-solid fa-envelope me-1"></i>
+                  <a href="mailto:<?= htmlspecialchars($mail) ?>"><?= htmlspecialchars($mail) ?></a>
+                </div>
+              <?php endif; ?>
+              <?php if ($link): ?>
+                <div class="small mt-1">
+                  <i class="fab fa-linkedin-in me-1"></i>
+                  <a href="<?= htmlspecialchars($link) ?>" target="_blank" rel="noopener noreferrer">
+                    <?= htmlspecialchars($link) ?>
+                  </a>
+                </div>
+              <?php endif; ?>
+              <?php if (!$mail && !$link): ?>
+                <span class="text-muted small">Sin datos</span>
+              <?php endif; ?>
+            </td>
+
+            <td>
+              <a class="btn btn-info btn-sm" href="editar.php?txtID=<?= $id ?>">Editar</a>
+              <a class="btn btn-danger btn-sm"
+                 href="index.php?txtID=<?= $id ?>"
+                 onclick="return confirm('¿Eliminar este registro? También se borrará la imagen.');">
+                 Eliminar
+              </a>
+            </td>
+          </tr>
+        <?php endforeach; ?>
+
+        <?php if (!$lista_equipo): ?>
+          <tr><td colspan="5" class="text-center text-muted">No hay registros.</td></tr>
+        <?php endif; ?>
+        </tbody>
+      </table>
     </div>
-    <div class="card-body">
-        <div class="table-responsive-sm">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th scope="col">ID</th>
-                        <th scope="col">Imagen</th>
-                        <th scope="col">Nombre y Puesto</th>
-                        <th scope="col">Contacto</th>
-                        
-                        <th scope="col">Acciones</th>
-
-
-                    </tr>
-                </thead>
-                <tbody>
-                <?php foreach ($lista_entradas as $registros){ ?>
-                    <tr class="">
-                        <td><?php echo $registros['ID'];?></td>
-                        <td scope="col">
-                        <img width= "50" src="../../../assets/img/team/<?php echo $registros['imagen'];?>" />
-                        </td>
-                        <td>
-                            <?php echo $registros['nombrecompleto'];?>
-                            <?php echo $registros['puesto'];?>
-                        </td>
-                        
-                        <td>
-                            <h10><?php echo $registros['correo'];?></h10>
-                            <h10><br><?php echo $registros['linkedin'];?></h10>
-                    
-                        </td>
-                       
-                        <td scope="col">
-
-                        <a name="" id="" class="btn btn-info" href="editar.php?txtID=<?php echo $registros['ID']; ?>" role="button">Editar</a>|
-                        <a name="" id="" class="btn btn-danger" href="index.php?txtID=<?php echo $registros['ID']; ?>" role="button">Eliminar</a>
-
-                        </td>
-
-
-                    </tr>
-                <?php } ?>
-                </tbody>
-            </table>
-        </div>
-        
-    </div>
-    
-        
-    </div>
+  </div>
 </div>
 
-
-<?php
-
-    include("../../templates/footer.php");
-?>
+<?php include("../../templates/footer.php"); ?>

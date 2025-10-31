@@ -1,97 +1,79 @@
-editar configuraciones
-
 <?php
+include("../../templates/header.php");
+include("../../bd.php");
 
-    include("../../templates/header.php");
-    include("../../bd.php");
+/* ===== CARGA INICIAL ===== */
+$txtID = '';
+$nombreConfiguracion = $valor = '';
 
-    if(isset($_GET['txtID'])){
+if (isset($_GET['txtID']) && is_numeric($_GET['txtID'])) {
+  $txtID = (int)$_GET['txtID'];
 
-    
-        $txtID=(isset($_GET['txtID']) )?$_GET['txtID']:"";
-    
-        $sentencia=$conexion->prepare("SELECT * FROM `tbl_confifiguraciones` WHERE id=:id");
-    
-        $sentencia->bindParam(":id",$txtID);
-    
-        $sentencia->execute();
-    
-        $registro=$sentencia->fetch(PDO::FETCH_LAZY);
-    
-        //recuperar registros
-    
-        $nombreConfiguracion=$registro['nombreConfiguracion'];
-        $valor=$registro['valor'];
-    }
+  $st = $conexion->prepare("SELECT * FROM `tbl_confifiguraciones` WHERE id = :id");
+  $st->bindParam(":id", $txtID, PDO::PARAM_INT);
+  $st->execute();
 
-    if($_POST){
+  if ($reg = $st->fetch(PDO::FETCH_ASSOC)) {
+    $nombreConfiguracion = $reg['nombreConfiguracion'] ?? '';
+    $valor               = $reg['valor'] ?? '';
+  }
+}
 
-        //recibir los valores del formulario
-        $txtID=(isset($_POST['txtID']))?$_POST['txtID']:"";//importante incluir
-        $nombreConfiguracion=(isset($_POST['nombreConfiguracion']))?$_POST['nombreConfiguracion']:"";
-        $valor=(isset($_POST['valor']))?$_POST['valor']:"";
-      
-        $sentencia=$conexion->prepare("UPDATE tbl_confifiguraciones 
-        SET 
-        nombreConfiguracion= :nombreConfiguracion,
-        valor= :valor
-        WHERE id=:id ");
+/* ===== ACTUALIZAR ===== */
+if ($_POST) {
+  $txtID               = isset($_POST['txtID']) ? (int)$_POST['txtID'] : 0;
+  $nombreConfiguracion = $_POST['nombreConfiguracion'] ?? '';
+  $valor               = $_POST['valor'] ?? '';
 
-        $sentencia->bindParam(":nombreConfiguracion",$nombreConfiguracion);
-        $sentencia->bindParam(":valor",$valor);
-        $sentencia->bindParam(":id",$txtID);
+  $up = $conexion->prepare(
+    "UPDATE `tbl_confifiguraciones`
+     SET nombreConfiguracion = :nombreConfiguracion,
+         valor               = :valor
+     WHERE id = :id"
+  );
+  $up->bindParam(":nombreConfiguracion", $nombreConfiguracion);
+  $up->bindParam(":valor",               $valor);
+  $up->bindParam(":id",                  $txtID, PDO::PARAM_INT);
+  $up->execute();
 
-        $sentencia->execute();
-
-
-      
-        $mensaje="Registro modificado con éxito";
-        header("Location:index.php?mensaje=".$mensaje);
-    }
-
+  $mensaje = "Registro modificado con éxito";
+  header("Location: index.php?mensaje=" . urlencode($mensaje));
+  exit;
+}
 ?>
-
 
 <div class="card">
-    <div class="card-header">
-        Confirguración
-    </div>
-    <div class="card-body">
+  <div class="card-header">
+    Editar configuración
+  </div>
 
-
+  <div class="card-body">
     <form action="" method="post">
+      <div class="mb-3">
+        <label for="txtID" class="form-label">ID</label>
+        <input type="text" class="form-control" id="txtID" name="txtID"
+               value="<?= htmlspecialchars((string)$txtID) ?>" readonly>
+      </div>
 
-    <div class="mb-3">
-      <label for="txtID" class="form-label">ID:</label>
-      <input readonly type="text"
-        class="form-control" value="<?php echo $txtID;?>" name="txtID" id="txtID" aria-describedby="helpId" placeholder="">
-    </div>
+      <div class="mb-3">
+        <label for="nombreConfiguracion" class="form-label">Nombre</label>
+        <input type="text" class="form-control" id="nombreConfiguracion" name="nombreConfiguracion"
+               value="<?= htmlspecialchars($nombreConfiguracion) ?>" placeholder="Nombre de la configuración" required>
+      </div>
 
-    <div class="mb-3">
-      <label for="nombreConfiguracion" class="form-label">Nombre:</label>
-      <input type="text"
-        class="form-control" value="<?php echo $nombreConfiguracion;?>" name="nombreConfiguracion" id="nombreConfiguracion" aria-describedby="helpId" placeholder="Nombre de la configuración">
-    </div>
+      <!-- Si usas valores largos (p. ej., textos de portada), puedes cambiar a textarea -->
+      <div class="mb-3">
+        <label for="valor" class="form-label">Valor</label>
+        <textarea class="form-control" id="valor" name="valor" rows="3"
+                  placeholder="Valor de la configuración"><?= htmlspecialchars($valor) ?></textarea>
+      </div>
 
-    <div class="mb-3">
-      <label for="valor" class="form-label">Valor:</label>
-      <input type="text"
-        class="form-control" value="<?php echo $valor;?>" name="valor" id="valor" aria-describedby="helpId" placeholder="Valor de la configuración">
-    </div>
-
-
-
-
-    <button type="submit" class="btn btn-success">Actualizar</button>
-    <a name="" id="" class="btn btn-primary" href="index.php" role="button">Cancelar</a>
-
+      <button type="submit" class="btn btn-success">Actualizar</button>
+      <a class="btn btn-primary" href="index.php" role="button">Cancelar</a>
     </form>
-    </div>
-    <div class="card-footer text-muted">
-        
-    </div>
-</div>
-<?php
+  </div>
 
-    include("../../templates/footer.php");
-?>
+  <div class="card-footer text-muted"></div>
+</div>
+
+<?php include("../../templates/footer.php"); ?>

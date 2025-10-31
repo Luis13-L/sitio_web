@@ -1,90 +1,81 @@
-crear entradas
-
 <?php
+include("../../templates/header.php");
+include("../../bd.php");
 
-    include("../../templates/header.php");
-    include("../../bd.php");
+if ($_POST) {
+  // Campos
+  $fecha       = $_POST['fecha']       ?? '';
+  $titulo      = $_POST['titulo']      ?? '';
+  $descripcion = $_POST['descripcion'] ?? '';
 
+  // Imagen (opcional)
+  $nombre_archivo_imagen = '';
+  if (!empty($_FILES['imagen']['tmp_name'])) {
+    $origName = $_FILES['imagen']['name'] ?? '';
+    $tmpFile  = $_FILES['imagen']['tmp_name'] ?? '';
 
-    if($_POST){
+    // nombre único + saneado
+    $stamp  = (new DateTime())->getTimestamp();
+    $limpio = preg_replace('/[^A-Za-z0-9_\.-]/', '_', $origName);
+    $nombre_archivo_imagen = $stamp . "_" . $limpio;
 
+    $dest = __DIR__ . "/../../../assets/img/about/" . $nombre_archivo_imagen;
+    @move_uploaded_file($tmpFile, $dest);
+  }
 
-        //recibir los valores del formulario
-        $fecha=(isset($_POST['fecha']))?$_POST['fecha']:"";
-        $titulo=(isset($_POST['titulo']))?$_POST['titulo']:"";
-        $descripcion=(isset($_POST['descripcion']))?$_POST['descripcion']:"";
-        $imagen=(isset($_FILES["imagen"]["name"]))?$_FILES["imagen"]["name"]:"";
+  // Insert
+  $sql = "INSERT INTO `tbl_entradas` (`fecha`,`titulo`,`descripcion`,`imagen`)
+          VALUES (:fecha,:titulo,:descripcion,:imagen)";
+  $st = $conexion->prepare($sql);
+  $st->bindParam(":fecha",       $fecha);
+  $st->bindParam(":titulo",      $titulo);
+  $st->bindParam(":descripcion", $descripcion);
+  $st->bindParam(":imagen",      $nombre_archivo_imagen);
+  $st->execute();
 
-        $fecha_imagen=new DateTime();
-        $nombre_archivo_imagen=($imagen!="")? $fecha_imagen->getTimestamp()."_".$imagen:"";
-
-        $tmp_imagen=$_FILES["imagen"]["tmp_name"];
-
-        if($tmp_imagen!=""){
-
-          move_uploaded_file($tmp_imagen,"../../../assets/img/about/".$nombre_archivo_imagen);
-          echo "se guardó la img";
-
-        }
-
-
-        //insertar
-
-        $sentencia=$conexion->prepare("INSERT INTO `tbl_entradas` 
-        (`ID`, `fecha`, `titulo`, `descripcion`, `imagen`) 
-        VALUES (NULL, :fecha, :titulo, :descripcion, :imagen);");
-
-        $sentencia->bindParam(":fecha",$fecha);
-        $sentencia->bindParam(":titulo",$titulo);
-        $sentencia->bindParam(":descripcion",$descripcion);
-        $sentencia->bindParam(":imagen",$nombre_archivo_imagen);
-        $sentencia->execute();
-    }
+  $mensaje = "Registro agregado con éxito";
+  header("Location: index.php?mensaje=" . urlencode($mensaje));
+  exit;
+}
 ?>
 
 <div class="card">
-    <div class="card-header">
-        Contenido
-    </div>
-    <div class="card-body">
-        <form action="" method="post" enctype="multipart/form-data">
-        <div class="mb-3">
-          <label for="fecha" class="form-label">Fecha:</label>
-          <input type="date"
-            class="form-control" name="fecha" id="fecha" aria-describedby="helpId" placeholder="">
-          
-        </div>
-        <div class="mb-3">
-          <label for="titulo" class="form-label">Título:</label>
-          <input type="text"
-            class="form-control" name="titulo" id="titulo" aria-describedby="helpId" placeholder="">
-          
-        </div>
-        <div class="mb-3">
-          <label for="descripcion" class="form-label">Descripción:</label>
-          <input type="text"
-            class="form-control" name="descripcion" id="descripcion" aria-describedby="helpId" placeholder="">
-          
+  <div class="card-header">Nueva entrada (Historia / Timeline)</div>
+
+  <div class="card-body">
+    <form action="" method="post" enctype="multipart/form-data">
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label for="fecha" class="form-label">Fecha</label>
+          <input type="date" class="form-control" name="fecha" id="fecha" required>
         </div>
 
-        <div class="mb-3">
+        <div class="col-md-8">
+          <label for="titulo" class="form-label">Título</label>
+          <input type="text" class="form-control" name="titulo" id="titulo" placeholder="Título" required>
+        </div>
+
+        <div class="col-12">
+          <label for="descripcion" class="form-label">Descripción</label>
+          <textarea class="form-control" name="descripcion" id="descripcion" rows="3" placeholder="Descripción"></textarea>
+        </div>
+
+        <div class="col-md-6">
           <label for="imagen" class="form-label">Imagen</label>
-          <input type="file" class="form-control" name="imagen" id="imagen" placeholder="Imagen" aria-describedby="fileHelpId">
-          
+          <input type="file" class="form-control" name="imagen" id="imagen"
+                 accept=".jpg,.jpeg,.png,.webp,.gif" aria-describedby="fileHelpId">
+          <div id="fileHelpId" class="form-text">Formatos: JPG, PNG, WEBP, GIF</div>
         </div>
+      </div>
 
+      <div class="mt-4">
         <button type="submit" class="btn btn-success">Agregar</button>
-        <a name="" id="" class="btn btn-primary" href="index.php" role="button">Cancelar</a>
+        <a class="btn btn-primary" href="index.php" role="button">Cancelar</a>
+      </div>
+    </form>
+  </div>
 
-
-        </form>
-    </div>
-    <div class="card-footer text-muted">
-        
-    </div>
+  <div class="card-footer text-muted"></div>
 </div>
 
-<?php
-
-    include("../../templates/footer.php");
-?>
+<?php include("../../templates/footer.php"); ?>

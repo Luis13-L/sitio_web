@@ -1,104 +1,103 @@
-listar entradas
-
 <?php
+include("../../bd.php");
+include("../../templates/header.php");
 
-    include("../../templates/header.php");
-    include("../../bd.php");
+/* ---- ELIMINAR: borra archivo + registro y redirige con mensaje ---- */
+if (isset($_GET['txtID']) && is_numeric($_GET['txtID'])) {
+  $txtID = (int)$_GET['txtID'];
 
-    if(isset($_GET['txtID'])){
+  // traer filename
+  $st = $conexion->prepare("SELECT imagen FROM `tbl_entradas` WHERE id = :id");
+  $st->bindParam(":id", $txtID, PDO::PARAM_INT);
+  $st->execute();
+  $row = $st->fetch(PDO::FETCH_ASSOC);
 
-    
-        $txtID=(isset($_GET['txtID']) )?$_GET['txtID']:"";
+  if ($row) {
+    $file = __DIR__ . "/../../../assets/img/about/" . $row['imagen'];
+    if (is_file($file)) { @unlink($file); }
 
-        //borrado de imagen
+    $del = $conexion->prepare("DELETE FROM `tbl_entradas` WHERE id = :id");
+    $del->bindParam(":id", $txtID, PDO::PARAM_INT);
+    $del->execute();
 
-        $sentencia=$conexion->prepare("SELECT imagen FROM `tbl_entradas` WHERE id=:id");
-        $sentencia->bindParam(":id",$txtID);
-        $sentencia->execute();
+    header("Location: index.php?mensaje=" . urlencode("Registro eliminado."));
+    exit;
+  }
+}
 
-        $registro_imagen=$sentencia->fetch(PDO::FETCH_LAZY);
+/* ---- LISTAR ---- */
+$st = $conexion->prepare("SELECT * FROM `tbl_entradas` ORDER BY id DESC");
+$st->execute();
+$lista_entradas = $st->fetchAll(PDO::FETCH_ASSOC);
 
-        if(isset($registro_imagen["imagen"])){
-
-            if(file_exists("../../../assets/img/about/".$registro_imagen["imagen"])){
-
-                unlink("../../../assets/img/about/".$registro_imagen["imagen"]);
-            }
-
-
-        }
-
-
-        //botrrar registro
-        $sentencia=$conexion->prepare("DELETE FROM `tbl_entradas` WHERE id=:id");
-        $sentencia->bindParam(":id",$txtID);
-        $sentencia->execute();
-
-    }
-
-        //Seleccionar registros
-        $sentencia=$conexion->prepare("SELECT * FROM `tbl_entradas`");
-        $sentencia->execute();
-        $lista_entradas=$sentencia->fetchAll(PDO::FETCH_ASSOC);
-
+$mensaje = isset($_GET['mensaje']) ? $_GET['mensaje'] : '';
 ?>
-
 
 <div class="card">
-    <div class="card-header">
-    <a name="" id="" class="btn btn-primary" href="crear.php" role="button">Agregar registro</a>
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>Entradas (Historia / Timeline)</span>
+    <a class="btn btn-primary" href="crear.php" role="button">Agregar registro</a>
+  </div>
 
-        
+  <div class="card-body">
+    <?php if ($mensaje): ?>
+      <div class="alert alert-success py-2 mb-3"><?= htmlspecialchars($mensaje) ?></div>
+    <?php endif; ?>
+
+    <div class="table-responsive-sm">
+      <table class="table align-middle">
+        <thead>
+          <tr>
+            <th scope="col" style="width:70px;">ID</th>
+            <th scope="col" style="width:140px;">Fecha</th>
+            <th scope="col" style="min-width:220px;">Título</th>
+            <th scope="col">Descripción</th>
+            <th scope="col" style="width:130px;">Imagen</th>
+            <th scope="col" style="width:180px;">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+        <?php foreach ($lista_entradas as $reg): ?>
+          <?php
+            $id    = (int)$reg['ID'];
+            $fecha = htmlspecialchars($reg['fecha'] ?? '');
+            $tit   = htmlspecialchars($reg['titulo'] ?? '');
+            $desc  = htmlspecialchars($reg['descripcion'] ?? '');
+            $img   = htmlspecialchars($reg['imagen'] ?? '');
+          ?>
+          <tr>
+            <td><?= $id ?></td>
+            <td><?= $fecha ?></td>
+            <td class="fw-semibold"><?= $tit ?></td>
+            <td class="text-wrap" style="max-width:520px;"><?= nl2br($desc) ?></td>
+            <td>
+              <?php if ($img): ?>
+                <img
+                  src="../../../assets/img/about/<?= $img ?>"
+                  alt="<?= $tit ?>"
+                  style="width:88px;height:88px;object-fit:cover;border-radius:8px;border:1px solid #e5e7eb;">
+              <?php else: ?>
+                <span class="text-muted">Sin imagen</span>
+              <?php endif; ?>
+            </td>
+            <td>
+              <a class="btn btn-info btn-sm" href="editar.php?txtID=<?= $id ?>">Editar</a>
+              <a class="btn btn-danger btn-sm"
+                 href="index.php?txtID=<?= $id ?>"
+                 onclick="return confirm('¿Eliminar este registro? También se borrará la imagen.');">
+                 Eliminar
+              </a>
+            </td>
+          </tr>
+        <?php endforeach; ?>
+
+        <?php if (!$lista_entradas): ?>
+          <tr><td colspan="6" class="text-center text-muted">No hay registros.</td></tr>
+        <?php endif; ?>
+        </tbody>
+      </table>
     </div>
-    <div class="card-body">
-       <div class="table-responsive-sm">
-           <table class="table table">
-               <thead>
-                   <tr>
-                       <th scope="col">ID</th>
-                       <th scope="col">Fecha</th>
-                       <th scope="col">Título</th>
-                       <th scope="col">Descripción</th>
-                       <th scope="col">Imagen</th>
-                       <th scope="col">Acciones</th>
-
-
-                   </tr>
-               </thead>
-               <tbody>
-               <?php foreach ($lista_entradas as $registros){ ?>
-                   <tr class="">
-                       <td><?php echo $registros['ID'];?></td>
-                       <td><?php echo $registros['fecha'];?></td>
-                       <td><?php echo $registros['titulo'];?></td>
-                       <td><?php echo $registros['descripcion'];?></td>
-                       <td scope="col">
-                            
-                            <img width= "50" src="../../../assets/img/about/<?php echo $registros['imagen'];?>" />
-                    
-                    
-                        </td>
-                       <td scope="col">
-
-                            <a name="" id="" class="btn btn-info" href="editar.php?txtID=<?php echo $registros['ID']; ?>" role="button">Editar</a>
-                            <a name="" id="" class="btn btn-danger" href="index.php?txtID=<?php echo $registros['ID']; ?>" role="button">Eliminar</a>
-                        </td>
-                      
-
-                   </tr>
-                   <?php } ?>
-                
-               </tbody>
-           </table>
-       </div>
-       
-
-    </div>
-    <div class="card-footer text-muted">
-        
-    </div>
+  </div>
 </div>
-<?php
 
-    include("../../templates/footer.php");
-?>
+<?php include("../../templates/footer.php"); ?>

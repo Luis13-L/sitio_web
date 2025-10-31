@@ -1,159 +1,144 @@
-editar entradas
-
 <?php
+include("../../templates/header.php");
+include("../../bd.php");
 
-    include("../../templates/header.php");
-    include("../../bd.php");
+/* ===== CARGA INICIAL ===== */
+$txtID = '';
+$fecha = $titulo = $descripcion = $imagen = '';
 
+if (isset($_GET['txtID']) && is_numeric($_GET['txtID'])) {
+  $txtID = (int)$_GET['txtID'];
 
-    if(isset($_GET['txtID'])){
+  $st = $conexion->prepare("SELECT * FROM `tbl_entradas` WHERE id = :id");
+  $st->bindParam(":id", $txtID, PDO::PARAM_INT);
+  $st->execute();
 
-    
-        $txtID=(isset($_GET['txtID']) )?$_GET['txtID']:"";
-    
-        $sentencia=$conexion->prepare("SELECT * FROM `tbl_entradas` WHERE id=:id");
-    
-        $sentencia->bindParam(":id",$txtID);
-       
-    
-        $sentencia->execute();
-    
-        $registro=$sentencia->fetch(PDO::FETCH_LAZY);
-    
-        //recuperar registros
-    
-        $fecha=$registro['fecha'];
-        $titulo=$registro['titulo'];
-        $imagen=$registro['imagen'];
-        $descripcion=$registro['descripcion'];
-        //$txtID=$registro['ID'];
-    
-    }
-if($_POST){
-
-   //recibir los valores del formulario
-   $txtID=(isset($_POST['txtID']))?$_POST['txtID']:"";//importante incluir
-
-   $fecha=(isset($_POST['fecha']))?$_POST['fecha']:"";
-   $titulo=(isset($_POST['titulo']))?$_POST['titulo']:"";
-   $descripcion=(isset($_POST['descripcion']))?$_POST['descripcion']:"";
-       
-    $sentencia=$conexion->prepare("UPDATE tbl_entradas SET fecha= :fecha, titulo=:titulo, descripcion=:descripcion WHERE id=:id");
-   
-    $sentencia->bindParam(":fecha",$fecha);
-    $sentencia->bindParam(":titulo",$titulo);
-    $sentencia->bindParam(":descripcion",$descripcion);
-    $sentencia->bindParam(":id",$txtID);
-    $sentencia->execute();
-
-    //Actualizar imagen
-    if($_FILES["imagen"]["tmp_name"]!=""){
-
-      $imagen=(isset($_FILES["imagen"]["name"]))?$_FILES["imagen"]["name"]:"";
-
-
-      $fecha_imagen=new DateTime();
-      $nombre_archivo_imagen=($imagen!="")? $fecha_imagen->getTimestamp()."_".$imagen:"";
-
-      $tmp_imagen=$_FILES["imagen"]["tmp_name"];
-
-      
-
-        move_uploaded_file($tmp_imagen,"../../../assets/img/about/".$nombre_archivo_imagen);
-        
-        
-
-        //borrado de imagen anterior
-
-        $sentencia=$conexion->prepare("SELECT imagen FROM `tbl_entradas` WHERE id=:id");
-        $sentencia->bindParam(":id",$txtID);
-        $sentencia->execute();
-
-        $registro_imagen=$sentencia->fetch(PDO::FETCH_LAZY);
-
-        if(isset($registro_imagen["imagen"])){
-
-            if(file_exists("../../../assets/img/about/".$registro_imagen["imagen"])){
-
-                unlink("../../../assets/img/about/".$registro_imagen["imagen"]);
-            }
-
-
-        }
-    
-        //actualizar la imagen 
-      $sentencia=$conexion->prepare("UPDATE tbl_entradas SET imagen= :imagen WHERE id=:id");
-      $sentencia->bindParam(":imagen",$nombre_archivo_imagen);
-      $sentencia->bindParam(":id",$txtID);
-      $sentencia->execute();
-      $imagen=$nombre_archivo_imagen;
-      
-
-
-
-    }
-
-    $mensaje="Registro agregado con éxito";
-    header("Location:index.php?mensaje=".$mensaje);
-
-
+  if ($reg = $st->fetch(PDO::FETCH_ASSOC)) {
+    $fecha       = $reg['fecha']        ?? '';
+    $titulo      = $reg['titulo']       ?? '';
+    $descripcion = $reg['descripcion']  ?? '';
+    $imagen      = $reg['imagen']       ?? '';
+  }
 }
 
+/* ===== ACTUALIZAR ===== */
+if ($_POST) {
+  $txtID       = isset($_POST['txtID']) ? (int)$_POST['txtID'] : 0;
+  $fecha       = $_POST['fecha']        ?? '';
+  $titulo      = $_POST['titulo']       ?? '';
+  $descripcion = $_POST['descripcion']  ?? '';
 
+  // Update de campos de texto
+  $up = $conexion->prepare(
+    "UPDATE tbl_entradas
+     SET fecha = :fecha, titulo = :titulo, descripcion = :descripcion
+     WHERE id = :id"
+  );
+  $up->bindParam(":fecha",       $fecha);
+  $up->bindParam(":titulo",      $titulo);
+  $up->bindParam(":descripcion", $descripcion);
+  $up->bindParam(":id",          $txtID, PDO::PARAM_INT);
+  $up->execute();
+
+  // Reemplazo de imagen (si se sube una nueva)
+  if (!empty($_FILES["imagen"]["tmp_name"])) {
+    $origName = $_FILES["imagen"]["name"] ?? '';
+    $tmpFile  = $_FILES["imagen"]["tmp_name"] ?? '';
+
+    // nombre único + saneado
+    $stamp  = (new DateTime())->getTimestamp();
+    $limpio = preg_replace('/[^A-Za-z0-9_\.-]/', '_', $origName);
+    $nombre_archivo_imagen = $stamp . "_" . $limpio;
+
+    $dest = __DIR__ . "/../../../assets/img/about/" . $nombre_archivo_imagen;
+
+    if (move_uploaded_file($tmpFile, $dest)) {
+      // borrar imagen anterior
+      $q = $conexion->prepare("SELECT imagen FROM `tbl_entradas` WHERE id = :id");
+      $q->bindParam(":id", $txtID, PDO::PARAM_INT);
+      $q->execute();
+      $old = $q->fetch(PDO::FETCH_ASSOC);
+
+      if ($old && !empty($old['imagen'])) {
+        $oldPath = __DIR__ . "/../../../assets/img/about/" . $old['imagen'];
+        if (is_file($oldPath)) { @unlink($oldPath); }
+      }
+
+      // guardar nueva imagen
+      $qi = $conexion->prepare("UPDATE tbl_entradas SET imagen = :imagen WHERE id = :id");
+      $qi->bindParam(":imagen", $nombre_archivo_imagen);
+      $qi->bindParam(":id", $txtID, PDO::PARAM_INT);
+      $qi->execute();
+
+      $imagen = $nombre_archivo_imagen;
+    }
+  }
+
+  $mensaje = "Registro actualizado con éxito";
+  header("Location: index.php?mensaje=" . urlencode($mensaje));
+  exit;
+}
 ?>
+
 <div class="card">
-    <div class="card-header">
-        Contenido
-    </div>
-    <div class="card-body">
-        <form action="" method="post" enctype="multipart/form-data">
+  <div class="card-header">
+    Editar entrada (Historia / Timeline)
+  </div>
+  <div class="card-body">
+    <form action="" method="post" enctype="multipart/form-data">
+      <div class="mb-3">
+        <label class="form-label">ID</label>
+        <input type="text" class="form-control" name="txtID" id="txtID"
+               value="<?= htmlspecialchars((string)$txtID) ?>" readonly>
+      </div>
 
-        <div class="mb-3">
-          <label for="" class="form-label">ID:</label>
-          <input type="text"
-            class="form-control" readonly value="<?php echo $txtID;?>" name="txtID" id="txtID" aria-describedby="helpId" placeholder="">
-          
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label for="fecha" class="form-label">Fecha</label>
+          <input type="date" class="form-control" name="fecha" id="fecha"
+                 value="<?= htmlspecialchars($fecha) ?>" required>
         </div>
 
-
-        <div class="mb-3">
-          <label for="fecha" class="form-label">Fecha:</label>
-          <input type="date"
-            class="form-control" value="<?php echo $fecha;?>" name="fecha" id="fecha" aria-describedby="helpId" placeholder="">
-          
-        </div>
-        <div class="mb-3">
-          <label for="titulo" class="form-label">Título:</label>
-          <input type="text"
-            class="form-control" value="<?php echo $titulo;?>" name="titulo" id="titulo" aria-describedby="helpId" placeholder="">
-          
-        </div>
-        <div class="mb-3">
-          <label for="descripcion" class="form-label">Descripción:</label>
-          <input type="text"
-            class="form-control" value="<?php echo $descripcion;?>" name="descripcion" id="descripcion" aria-describedby="helpId" placeholder="">
-          
+        <div class="col-md-8">
+          <label for="titulo" class="form-label">Título</label>
+          <input type="text" class="form-control" name="titulo" id="titulo"
+                 value="<?= htmlspecialchars($titulo) ?>" placeholder="Título" required>
         </div>
 
-        <div class="mb-3">
+        <div class="col-12">
+          <label for="descripcion" class="form-label">Descripción</label>
+          <textarea class="form-control" name="descripcion" id="descripcion" rows="3"
+                    placeholder="Descripción"><?= htmlspecialchars($descripcion) ?></textarea>
+        </div>
+
+        <div class="col-md-6">
           <label for="imagen" class="form-label">Imagen</label>
-            <img width= "50" src="../../../assets/img/about/<?php echo $imagen?>" />
-          
-          <input type="file" class="form-control" name="imagen" id="imagen" placeholder="Imagen" aria-describedby="fileHelpId">
-          
+          <input type="file" class="form-control" name="imagen" id="imagen"
+                 accept=".jpg,.jpeg,.png,.webp,.gif" aria-describedby="fileHelpId">
+          <div id="fileHelpId" class="form-text">Formatos: JPG, PNG, WEBP, GIF</div>
         </div>
 
+        <div class="col-md-6 d-flex align-items-end">
+          <?php if ($imagen): ?>
+            <div class="d-flex align-items-center gap-3">
+              <img src="../../../assets/img/about/<?= htmlspecialchars($imagen) ?>"
+                   alt="Imagen actual"
+                   style="width:120px;height:120px;object-fit:cover;border-radius:8px;border:1px solid #e5e7eb;">
+              <small class="text-muted">Vista previa</small>
+            </div>
+          <?php else: ?>
+            <span class="text-muted">Sin imagen</span>
+          <?php endif; ?>
+        </div>
+      </div>
+
+      <div class="mt-4">
         <button type="submit" class="btn btn-success">Actualizar</button>
-<a name="" id="" class="btn btn-primary" href="index.php" role="button">Cancelar</a>
-
-
-        </form>
-    </div>
-    <div class="card-footer text-muted">
-        
-    </div>
+        <a class="btn btn-primary" href="index.php" role="button">Cancelar</a>
+      </div>
+    </form>
+  </div>
+  <div class="card-footer text-muted"></div>
 </div>
-<?php
 
-    include("../../templates/footer.php");
-?>
+<?php include("../../templates/footer.php"); ?>
