@@ -11881,3 +11881,117 @@ section#about ul.timeline li.timeline-inverted:last-child > .timeline-image > h4
 #mainNav .navbar-nav .nav-link{
   font-weight: 700;              /* negrita */
 }
+/* Justificar solo el contenido de los modales de portafolio */
+.portfolio-modal .modal-body .texto-justificado {
+  text-align: justify !important; 
+  text-justify: inter-word !important;   /* mejora el espaciado en algunos navegadores */
+  hyphens: auto !important;              /* guiones automáticos (usa lang="es" en <html>) */
+  line-height: 1.7 !important;
+}
+
+/* Que los links largos no rompan el layout */
+.portfolio-modal .modal-body a {
+  word-break: break-word !important;
+  overflow-wrap: anywhere !important;
+}
+
+/* (opcional) un poco de margen entre párrafos/listas */
+.portfolio-modal .modal-body p,
+.portfolio-modal .modal-body ul {
+  margin-top: .75rem;
+  margin-bottom: .75rem;
+}
+
+/* Botón PDF azul (ignora el primary amarillo del tema) */
+.pdf-btn{
+  background-color:#0d6efd !important;   /* azul */
+  border-color:#0d6efd !important;
+  color:#fff !important;
+}
+
+.pdf-btn:hover,
+.pdf-btn:focus{
+  background-color:#0b5ed7 !important;
+  border-color:#0a58ca !important;
+  color:#fff !important;
+  box-shadow:0 0 0 .2rem rgba(13,110,253,.25) !important;
+}
+
+.pdf-btn:active{
+  background-color:#0a58ca !important;
+  border-color:#0a53be !important;
+  color:#fff !important;
+}
+/* -------- Modal de portafolio: ajustes generales -------- */
+.portfolio-modal .modal-content{
+  /* altura máx. menos márgenes del viewport móvil */
+  max-height: calc(100dvh - 2rem);
+  overflow: hidden;            /* el scroll va en .modal-body por la clase BS */
+  border-radius: 12px;
+}
+
+.portfolio-modal .modal-body{
+  padding: 1.5rem 1.25rem;
+}
+
+.portfolio-modal .modal-img{
+  width: 100%;
+  height: auto;
+  max-height: 50vh;            /* que la imagen no se coma toda la pantalla */
+  object-fit: cover;
+  margin-bottom: 1rem;
+}
+
+.portfolio-modal .item-intro{
+  text-align: justify;         /* como pediste para el texto del modal */
+}
+
+/* -------- Tipografía responsive con clamp -------- */
+.portfolio-modal .modal-body h2{
+  /* Se ajusta entre 1.25rem y 2.25rem según ancho */
+  font-size: clamp(1.25rem, 5vw, 2.25rem);
+  line-height: 1.2;
+  word-break: break-word;
+  margin-bottom: .75rem;
+  text-align: center;
+}
+
+.portfolio-modal .modal-body p{
+  font-size: clamp(.95rem, 3.5vw, 1.125rem);
+  line-height: 1.55;
+}
+
+/* -------- Ajustes finos para pantallas muy pequeñas -------- */
+@media (max-width: 576px){
+  .portfolio-modal .modal-content{ max-height: calc(100dvh - 1rem); }
+  .portfolio-modal .modal-body{ padding: 1rem .9rem; }
+  .portfolio-modal .modal-img{ max-height: 38vh; }
+}
+
+/* (Opcional) botón de cierre cómodo en móvil */
+.portfolio-modal .close-modal{
+  position: absolute;
+  top: .75rem;
+  right: .75rem;
+  z-index: 10;
+}
+/* Evita que el contenido se desborde del modal */
+.portfolio-modal .modal-content{
+  max-height: calc(100dvh - 2rem);
+  overflow: hidden;
+}
+
+/* Fuerza scroll en el contenedor interno que hoy envuelve modal-body */
+.portfolio-modal .modal-content > .container{
+  max-height: calc(100dvh - 3.5rem);
+  overflow-y: auto;
+  padding-right: .5rem;
+}
+
+/* Ajustes móviles */
+@media (max-width: 576px){
+  .portfolio-modal .modal-content{ max-height: calc(100dvh - 1rem); }
+  .portfolio-modal .modal-content > .container{ max-height: calc(100dvh - 2rem); }
+}
+
+

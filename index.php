@@ -31,16 +31,41 @@
         // $lista_inicioo=$sentencia->fetchAll(PDO::FETCH_ASSOC);
 
 
+     
+            // --- Paginación para Servicios ---
+           
+          // --- Cargar servicios para el portal ---
+          try {
+            $stmt = $conexion->prepare(
+              "SELECT ID, icono, titulo, descripcion, archivo
+              FROM tbl_servicios
+              ORDER BY ID DESC"
+            );
+            $stmt->execute();
+            $lista_servicios = $stmt->fetchAll(PDO::FETCH_ASSOC);
+          } catch (Throwable $e) {
+            // Si algo falla, dejamos un arreglo vacío para evitar errores
+            $lista_servicios = [];
+          }
+
+          // --- Paginación (3 cols x 2 filas = 6 por página) ---
+          $perPage = 6;
+          $total   = is_countable($lista_servicios) ? count($lista_servicios) : 0;
+          $page    = isset($_GET['sp']) ? max(1, (int)$_GET['sp']) : 1;
+          $totalPg = max(1, (int)ceil($total / $perPage));
+          $page    = min($page, $totalPg);
+          $offset  = ($page - 1) * $perPage;
+
+          // Si no hay servicios, devolvemos arreglo vacío
+          $servicios_page = $total > 0 ? array_slice($lista_servicios, $offset, $perPage) : [];
+
+          // Helper para armar las URLs de paginación
+          $baseUrl = htmlspecialchars($_SERVER['PHP_SELF'], ENT_QUOTES, 'UTF-8');
+          $toPage  = function (int $p) use ($baseUrl) {
+            return $baseUrl . '?sp=' . $p . '#services';
+          };
 
 
-
-      //Obtener los registros
-
-      $sentencia=$conexion->prepare("SELECT * FROM `tbl_servicios`");
-      $sentencia->execute();
-      $lista_servicios=$sentencia->fetchAll(PDO::FETCH_ASSOC);
-
-      //obtener registros de portafolio
 
 
 
@@ -170,45 +195,127 @@
                 <a class="btn btn-xl text-uppercase btn-empezar" href="<?php echo $lista_configuraciones[3]['valor']; ?>"><?php echo $lista_configuraciones[2]['valor']; ?></a>
             </div>
         </header>
-        <!-- Services-->
-        <section class="page-section" id="services">
-          <div class="container">
-            <div class="text-center">
-              <h2 class="section-heading text-uppercase"><?= htmlspecialchars($lista_configuraciones[4]['valor'] ?? '', ENT_QUOTES, 'UTF-8') ?></h2>
-              <h3 class="section-subheading text-muted"><?= htmlspecialchars($lista_configuraciones[5]['valor'] ?? '', ENT_QUOTES, 'UTF-8') ?></h3>
+        
+        <!-- Services -->
+<!-- Services -->
+<section class="page-section" id="services">
+  <div class="container">
+    <div class="text-center">
+      <h2 class="section-heading text-uppercase">
+        <?= htmlspecialchars($lista_configuraciones[4]['valor'] ?? '', ENT_QUOTES, 'UTF-8') ?>
+      </h2>
+      <h3 class="section-subheading text-muted">
+        <?= htmlspecialchars($lista_configuraciones[5]['valor'] ?? '', ENT_QUOTES, 'UTF-8') ?>
+      </h3>
+    </div>
+
+    <div class="row text-center g-4">
+      <?php if (!empty($servicios_page)): ?>
+        <?php foreach ($servicios_page as $s):
+          $img   = trim($s['icono'] ?? '');
+          $tit   = htmlspecialchars($s['titulo'] ?? '', ENT_QUOTES, 'UTF-8');
+          $desc  = htmlspecialchars($s['descripcion'] ?? '', ENT_QUOTES, 'UTF-8');
+          $pdf   = trim($s['archivo'] ?? '');
+
+          // Ajusta a "servicios" si esa es tu carpeta real
+          $imgUrl = $img ? ('assets/img/services/' . rawurlencode($img)) : '';
+          $pdfUrl = $pdf ? ('assets/docs/services/' . rawurlencode($pdf)) : '';
+        ?>
+        <div class="col-12 col-md-6 col-lg-4">
+          <div class="service-card h-100 d-flex flex-column align-items-center text-center p-3">
+            <div class="service-icon mb-3">
+              <?php if ($imgUrl): ?>
+                <img
+                  src="<?= $imgUrl ?>"
+                  alt="<?= $tit ?>"
+                  loading="lazy" width="120" height="120"
+                  class="service-img"
+                  onerror="this.src='https://via.placeholder.com/120x120?text=No+img';">
+              <?php else: ?>
+                <span class="fa-stack fa-3x">
+                  <i class="fas fa-circle fa-stack-2x text-primary"></i>
+                  <i class="fa-solid fa-image fa-stack-1x fa-inverse"></i>
+                </span>
+              <?php endif; ?>
             </div>
 
-            <div class="row text-center g-4">
-              <?php foreach ($lista_servicios as $s): 
-                $img  = htmlspecialchars($s['icono'] ?? '', ENT_QUOTES, 'UTF-8');
-                $tit  = htmlspecialchars($s['titulo'] ?? '', ENT_QUOTES, 'UTF-8');
-                $desc = htmlspecialchars($s['descripcion'] ?? '', ENT_QUOTES, 'UTF-8');
-              ?>
-              <div class="col-12 col-md-6 col-lg-4">
-                <div class="service-card h-100 d-flex flex-column align-items-center text-center">
-                  <div class="service-icon mb-3">
-                    <?php if ($img): ?>
-                      <img
-                        src="assets/img/services/<?= $img ?>"
-                        alt="<?= $tit ?>"
-                        loading="lazy" width="96" height="96"
-                        class="img-fluid" />
-                    <?php else: ?>
-                      <!-- Fallback si no hay imagen -->
-                      <span class="fa-stack fa-3x">
-                        <i class="fas fa-circle fa-stack-2x text-primary"></i>
-                        <i class="fa-solid fa-image fa-stack-1x fa-inverse"></i>
-                      </span>
-                    <?php endif; ?>
-                  </div>
-                  <h4 class="my-2"><?= $tit ?></h4>
-                  <p class="text-muted mb-0"><?= $desc ?></p>
-                </div>
-              </div>
-              <?php endforeach; ?>
-            </div>
+            <h4 class="my-2"><?= $tit ?></h4>
+            <p class="text-muted mb-3"><?= $desc ?></p>
+
+            <?php if ($pdfUrl): ?>
+              <a class="btn btn-sm" 
+              style="
+                --bs-btn-color:#fff;
+                --bs-btn-bg:#1e40af;               /* azul principal */
+                --bs-btn-border-color:#1e40af;
+                --bs-btn-hover-color:#fff;
+                --bs-btn-hover-bg:#19389e;         /* hover */
+                --bs-btn-hover-border-color:#19389e;
+                --bs-btn-focus-shadow-rgb:30,64,175; /* focus ring */
+                --bs-btn-active-color:#fff;
+                --bs-btn-active-bg:#173286;        /* active */
+                --bs-btn-active-border-color:#173286;
+                color:#fff;background:#1e40af;border-color:#1e40af;
+              " 
+              href="<?= $pdfUrl ?>" target="_blank" rel="noopener">
+                <i class="fa-solid fa-file-pdf me-1"></i> Ver/Descargar PDF
+              </a>
+            <?php endif; ?>
           </div>
-        </section>
+        </div>
+        <?php endforeach; ?>
+      <?php else: ?>
+        <div class="col-12">
+          <p class="text-muted">Aún no hay servicios publicados.</p>
+        </div>
+      <?php endif; ?>
+    </div>
+
+    <!-- Controles de paginación -->
+    <?php if ($totalPg > 1): ?>
+      <nav aria-label="Servicios paginación" class="mt-4">
+        <ul class="pagination justify-content-center">
+          <li class="page-item <?= $page <= 1 ? 'disabled' : '' ?>">
+            <a class="page-link" href="<?= $toPage(1) ?>">Primero</a>
+          </li>
+          <li class="page-item <?= $page <= 1 ? 'disabled' : '' ?>">
+            <a class="page-link" href="<?= $toPage($page - 1) ?>">Anterior</a>
+          </li>
+
+          <?php
+          // Rango acotado de páginas (opcional)
+          $win = 2; // cuántas a cada lado
+          $start = max(1, $page - $win);
+          $end   = min($totalPg, $page + $win);
+          for ($p = $start; $p <= $end; $p++):
+          ?>
+            <li class="page-item <?= $p === $page ? 'active' : '' ?>">
+              <a class="page-link" href="<?= $toPage($p) ?>"><?= $p ?></a>
+            </li>
+          <?php endfor; ?>
+
+          <li class="page-item <?= $page >= $totalPg ? 'disabled' : '' ?>">
+            <a class="page-link" href="<?= $toPage($page + 1) ?>">Siguiente</a>
+          </li>
+          <li class="page-item <?= $page >= $totalPg ? 'disabled' : '' ?>">
+            <a class="page-link" href="<?= $toPage($totalPg) ?>">Último</a>
+          </li>
+        </ul>
+      </nav>
+    <?php endif; ?>
+  </div>
+</section>
+
+<style>
+  .service-img{
+    width:120px; height:120px; object-fit:contain;
+    border:1px solid #e5e7eb; border-radius:12px; background:#f8f9fa;
+    padding:6px;
+  }
+  .service-card{ border-radius:16px; background:#fff; box-shadow:0 6px 18px rgba(0,0,0,.06); }
+</style>
+
+
 
 
 
@@ -243,43 +350,60 @@
 
       <!-- MODAL -->
       <div class="portfolio-modal modal fade" id="portfolioModal<?= $pid ?>" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
-          <div class="modal-content">
-            <button class="close-modal" data-bs-dismiss="modal" aria-label="Cerrar">
-              <img src="assets/img/close-icon.svg" alt="Cerrar modal" />
-            </button>
-            <div class="container">
-              <div class="row justify-content-center">
-                <div class="col-lg-8">
-                  <div class="modal-body">
-                    <h2 class="text-uppercase"><?= h($registros['titulo']) ?></h2>
-                    <p class="item-intro text-muted"><?= h($registros['subtitulo']) ?></p>
-                    <img class="img-fluid d-block mx-auto modal-img" loading="lazy"
-                         src="assets/img/portfolio/<?= h($registros['imagen']) ?>"
-                         alt="<?= h($registros['titulo']) ?>"
-                         width="1200" height="800" />
-                    <p><?= nl2br(h($registros['descripcion'])) ?></p>
-                    <ul class="list-inline">
-                      <li><strong>Cliente:</strong> <?= h($registros['cliente']) ?></li>
-                      <li><strong>Categoría:</strong> <?= h($registros['categoria']) ?></li>
-                      <?php if (!empty($registros['url'])): ?>
-                      <li><strong>URL:</strong>
-                        <a href="<?= h($registros['url']) ?>" target="_blank" rel="noopener noreferrer">
-                          <?= h($registros['url']) ?>
-                        </a>
-                      </li>
-                      <?php endif; ?>
-                    </ul>
-                    <button class="btn btn-primary btn-xl text-uppercase" data-bs-dismiss="modal" type="button">
-                      <i class="fas fa-xmark me-1" aria-hidden="true"></i> Cerrar
-                    </button>
+          <!-- centrado + scroll si el contenido es largo -->
+          <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+              <button class="close-modal" data-bs-dismiss="modal" aria-label="Cerrar">
+                <img src="assets/img/close-icon.svg" alt="Cerrar modal" />
+              </button>
+              <div class="container">
+                <div class="row justify-content-center">
+                  <div class="col-lg-8">
+                    <div class="modal-body">
+                      <!-- Título ajustable y con quiebres -->
+                      <h2 class="text-uppercase text-center fw-bold lh-sm text-break modal-title-fix">
+                        <?= h($registros['titulo']) ?>
+                      </h2>
+
+                      <!-- Subtítulo con justificado/quiebres -->
+                      <p class="item-intro text-muted text-center text-break text-justify modal-subtitle-fix">
+                        <?= h($registros['subtitulo']) ?>
+                      </p>
+
+                      <!-- Imagen completamente responsiva -->
+                      <img class="img-fluid d-block mx-auto modal-img w-100 h-auto"
+                          loading="lazy"
+                          src="assets/img/portfolio/<?= h($registros['imagen']) ?>"
+                          alt="<?= h($registros['titulo']) ?>" />
+
+                      <!-- Descripción con justificado y quiebres -->
+                      <p class="text-break text-justify modal-desc-fix">
+                        <?= nl2br(h($registros['descripcion'])) ?>
+                      </p>
+
+                      <ul class="list-inline text-break">
+                        <li><strong>Cliente:</strong> <?= h($registros['cliente']) ?></li>
+                        <li><strong>Categoría:</strong> <?= h($registros['categoria']) ?></li>
+                        <?php if (!empty($registros['url'])): ?>
+                          <li class="text-break"><strong>URL:</strong>
+                            <a class="text-break" href="<?= h($registros['url']) ?>" target="_blank" rel="noopener noreferrer">
+                              <?= h($registros['url']) ?>
+                            </a>
+                          </li>
+                        <?php endif; ?>
+                      </ul>
+
+                      <button class="btn btn-primary btn-xl text-uppercase" data-bs-dismiss="modal" type="button">
+                        <i class="fas fa-xmark me-1" aria-hidden="true"></i> Cerrar
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+
       <?php endforeach; ?>
     </div>
 

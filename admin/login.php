@@ -7,11 +7,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $usuario  = trim($_POST['usuario'] ?? '');
     $password = $_POST['password'] ?? '';
 
-    // Trae usuario por nombre. Incluye password_hash y, si existe, el campo legacy `password`.
-    $sql = "SELECT id, usuario, correo, rol,
-                   password_hash,
-                   /* si no tienes esta columna, quítala: */
-                   password AS legacy_password
+    // 1) Trae solo por usuario; NO uses password en el WHERE
+    $sql = "SELECT id, usuario, correo, /* quita 'rol' si no existe */
+                   password_hash
             FROM tbl_usuarios
             WHERE usuario = :usuario
             LIMIT 1";
@@ -19,33 +17,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $st->execute([':usuario' => $usuario]);
     $u = $st->fetch(PDO::FETCH_ASSOC);
 
-    $ok = false;
-
-    if ($u) {
-        // 1) Caso moderno: password_hash lleno
-        if (!empty($u['password_hash']) && password_verify($password, $u['password_hash'])) {
-            $ok = true;
-
-            // Rehash si cambia el algoritmo por defecto (opcional)
-        } elseif (!empty($u['legacy_password']) && hash_equals($u['legacy_password'], $password)) {
-            // 2) Caso legado: coincidió con la columna antigua en texto plano.
-            // Migra a hash seguro inmediatamente:
-            $nuevoHash = password_hash($password, PASSWORD_DEFAULT);
-            $up = $conexion->prepare("UPDATE tbl_usuarios
-                                      SET password_hash = :h
-                                      WHERE id = :id");
-            $up->execute([':h' => $nuevoHash, ':id' => $u['id']]);
-
-            $ok = true;
-        }
-    }
+    // 2) Verifica el hash
+    $ok = $u && !empty($u['password_hash']) && password_verify($password, $u['password_hash']);
 
     if ($ok) {
         session_regenerate_id(true);
         $_SESSION['user_id']  = (int)$u['id'];
         $_SESSION['usuario']  = $u['usuario'];
-        $_SESSION['rol']      = $u['rol'] ?? 'user';
-        $_SESSION['logueado'] = true;
+        $_SESSION['logueado'] = true;           // añade $_SESSION['rol'] si tienes columna 'rol'
         header('Location: index.php');
         exit;
     } else {
@@ -53,6 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 ?>
+
 
 <!doctype html>
 <html lang="es">
