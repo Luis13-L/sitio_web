@@ -1,50 +1,77 @@
-
 <?php
-include("../../bd.php");
-include("../../templates/header.php");
+// admin/secciones/inicio/index.php
 
-/* ---- ELIMINAR: borra archivo + registro y redirige con mensaje ---- */
-if (isset($_GET['txtID']) && is_numeric($_GET['txtID'])) {
-  $txtID = (int)$_GET['txtID'];
+require_once __DIR__ . "/../../auth_guard.php";
+require_login(); // listado visible para usuarios con sesión
+require_once __DIR__ . "/../../bd.php";
 
-  // traer filename
-  $st = $conexion->prepare("SELECT imagen FROM `tbl_inicioo` WHERE id = :id");
+$isAdmin = (($_SESSION['rol'] ?? '') === 'admin');
+
+// Rutas a imágenes
+$IMG_DIR = __DIR__ . "/../../../assets/img";
+$IMG_URL = "../../../assets/img/";
+
+// CSRF para acciones
+$csrf_token = ensure_csrf_token();
+
+/* ===== ELIMINAR (solo admin, POST + CSRF) ===== */
+if ($isAdmin && $_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete') {
+  verify_csrf_or_die($_POST['csrf_token'] ?? null);
+
+  $id = $_POST['id'] ?? '';
+  if (!ctype_digit((string)$id) || (int)$id <= 0) {
+    header("Location: index.php?error=" . urlencode("ID inválido.")); exit;
+  }
+  $txtID = (int)$id;
+
+  // obtener filename
+  $st = $conexion->prepare("SELECT imagen FROM tbl_inicioo WHERE id = :id");
   $st->bindParam(":id", $txtID, PDO::PARAM_INT);
   $st->execute();
   $row = $st->fetch(PDO::FETCH_ASSOC);
 
   if ($row) {
-    // borrar archivo físico si existe
-    $file = __DIR__ . "/../../../assets/img/" . $row['imagen'];
-    if (is_file($file)) { @unlink($file); }
-
+    // borrar archivo físico
+    if (!empty($row['imagen'])) {
+      $path = rtrim($IMG_DIR,'/')."/".$row['imagen'];
+      if (is_file($path)) { @unlink($path); }
+    }
     // borrar registro
-    $del = $conexion->prepare("DELETE FROM `tbl_inicioo` WHERE id = :id");
+    $del = $conexion->prepare("DELETE FROM tbl_inicioo WHERE id = :id");
     $del->bindParam(":id", $txtID, PDO::PARAM_INT);
     $del->execute();
 
-    header("Location: index.php?mensaje=" . urlencode("Registro eliminado."));
-    exit;
+    header("Location: index.php?mensaje=" . urlencode("Registro eliminado.")); exit;
+  } else {
+    header("Location: index.php?error=" . urlencode("Registro no encontrado.")); exit;
   }
 }
 
-/* ---- LISTAR ---- */
-$sentencia = $conexion->prepare("SELECT * FROM `tbl_inicioo` ORDER BY id DESC");
-$sentencia->execute();
-$lista_inicioo = $sentencia->fetchAll(PDO::FETCH_ASSOC);
+/* ===== LISTAR ===== */
+$st = $conexion->prepare("SELECT * FROM tbl_inicioo ORDER BY id DESC");
+$st->execute();
+$lista = $st->fetchAll(PDO::FETCH_ASSOC);
 
-$mensaje = isset($_GET['mensaje']) ? $_GET['mensaje'] : '';
+$mensaje = $_GET['mensaje'] ?? '';
+$error   = $_GET['error'] ?? '';
+
+include("../../templates/header.php");
 ?>
 
 <div class="card">
   <div class="card-header d-flex justify-content-between align-items-center">
-    <span>Puedes editar los componentes…</span>
-    <a class="btn btn-primary" href="crear.php" role="button">Agregar registro</a>
+    <span style="font-weight:700; font-size:1.25rem;">Portada y Logo</span>
+    <?php if ($isAdmin): ?>
+      <a class="btn btn-primary" href="crear.php">Agregar registro</a>
+    <?php endif; ?>
   </div>
 
   <div class="card-body">
     <?php if ($mensaje): ?>
       <div class="alert alert-success py-2 mb-3"><?= htmlspecialchars($mensaje) ?></div>
+    <?php endif; ?>
+    <?php if ($error): ?>
+      <div class="alert alert-danger py-2 mb-3"><?= htmlspecialchars($error) ?></div>
     <?php endif; ?>
 
     <div class="table-responsive-sm">
@@ -54,37 +81,61 @@ $mensaje = isset($_GET['mensaje']) ? $_GET['mensaje'] : '';
             <th scope="col" style="width:70px;">ID</th>
             <th scope="col" style="width:220px;">Componente</th>
             <th scope="col" style="width:130px;">Imagen</th>
-            <th scope="col" style="width:180px;">Acciones</th>
+            <?php if ($isAdmin): ?>
+              <th scope="col" class="icon-col" style="width:160px;">Acciones</th>
+            <?php endif; ?>
           </tr>
         </thead>
         <tbody>
-          <?php foreach ($lista_inicioo as $reg): ?>
-          <tr>
-            <td><?= (int)$reg['ID']; ?></td>
-            <td><?= htmlspecialchars($reg['componente']); ?></td>
-            <td>
-              <?php if (!empty($reg['imagen'])): ?>
-                <img
-                  src="../../../assets/img/<?= htmlspecialchars($reg['imagen']) ?>"
-                  alt="<?= htmlspecialchars($reg['componente']) ?>"
-                  style="width:88px;height:88px;object-fit:contain;border:1px solid #e5e7eb;border-radius:8px;">
-              <?php else: ?>
-                <span class="text-muted">Sin imagen</span>
+          <?php foreach ($lista as $reg): ?>
+            <?php
+              $id   = (int)($reg['ID'] ?? $reg['id']);
+              $comp = htmlspecialchars($reg['componente'] ?? '');
+              $img  = htmlspecialchars($reg['imagen'] ?? '');
+            ?>
+            <tr>
+              <td><?= $id ?></td>
+              <td style="font-weight:600; text-transform:capitalize;"><?= $comp ?></td>
+              <td>
+                <?php if ($img): ?>
+                  <img
+                    src="<?= $IMG_URL . $img ?>"
+                    alt="<?= $comp ?>"
+                    style="width:88px;height:88px;object-fit:contain;border:1px solid #e5e7eb;border-radius:8px;">
+                <?php else: ?>
+                  <span class="text-muted">—</span>
+                <?php endif; ?>
+              </td>
+
+              <?php if ($isAdmin): ?>
+                <td class="cell-center">
+                  <div class="action-group">
+                    <a class="btn btn-brand-outline btn-icon"
+                       href="editar.php?txtID=<?= $id ?>" title="Editar">
+                      <i class="fa-solid fa-pen"></i>
+                    </a>
+
+                    <form method="post" class="d-inline"
+                          onsubmit="return confirm('¿Eliminar este registro? También se borrará la imagen.');">
+                      <input type="hidden" name="action" value="delete">
+                      <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
+                      <input type="hidden" name="id" value="<?= $id ?>">
+                      <button type="submit" class="btn btn-danger btn-icon" title="Eliminar">
+                        <i class="fa-solid fa-trash"></i>
+                      </button>
+                    </form>
+                  </div>
+                </td>
               <?php endif; ?>
-            </td>
-            <td>
-              <a class="btn btn-info btn-sm" href="editar.php?txtID=<?= (int)$reg['ID']; ?>">Editar</a>
-              <a class="btn btn-danger btn-sm"
-                 href="index.php?txtID=<?= (int)$reg['ID']; ?>"
-                 onclick="return confirm('¿Eliminar este registro? También se borrará la imagen.');">
-                 Eliminar
-              </a>
-            </td>
-          </tr>
+            </tr>
           <?php endforeach; ?>
 
-          <?php if (!$lista_inicioo): ?>
-          <tr><td colspan="4" class="text-center text-muted">No hay registros.</td></tr>
+          <?php if (!$lista): ?>
+            <tr>
+              <td colspan="<?= $isAdmin ? 4 : 3 ?>" class="text-center text-muted">
+                No hay registros.
+              </td>
+            </tr>
           <?php endif; ?>
         </tbody>
       </table>

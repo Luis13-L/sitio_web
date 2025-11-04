@@ -83,7 +83,7 @@
 
         // Traer solo los de la página actual
         $st = $conexion->prepare("
-            SELECT id, titulo, subtitulo, descripcion, imagen, cliente, categoria, url
+            SELECT id, titulo, subtitulo, descripcion, imagen, categoria, url
             FROM tbl_portafolio
             ORDER BY id DESC
             LIMIT :lim OFFSET :off
@@ -180,6 +180,8 @@
                         <li class="nav-item"><a class="nav-link" href="#about">Historia</a></li>
                         <li class="nav-item"><a class="nav-link" href="#team">Equipo</a></li>
                         <li class="nav-item"><a class="nav-link" href="#contact">Contacto</a></li>
+                        <li class="nav-item"><a class="nav-link" href="admin/login.php">Iniciar Sesión</a></li>
+
                     </ul>
                 </div>
             </div>
@@ -382,7 +384,7 @@
                       </p>
 
                       <ul class="list-inline text-break">
-                        <li><strong>Cliente:</strong> <?= h($registros['cliente']) ?></li>
+                        
                         <li><strong>Categoría:</strong> <?= h($registros['categoria']) ?></li>
                         <?php if (!empty($registros['url'])): ?>
                           <li class="text-break"><strong>URL:</strong>
@@ -585,7 +587,7 @@
         <footer class="footer py-4">
             <div class="container">
                 <div class="row align-items-center">
-                    <div class="col-lg-4 text-lg-start">Copyright &copy; Your Website 2023</div>
+                    <div class="col-lg-4 text-lg-start">Copyright &copy; Dirección Departamental de Educación de Sololá</div>
                     <div class="col-lg-4 my-3 my-lg-0">
                         <a class="btn btn-dark btn-social mx-2" href="<?php echo $lista_configuraciones[15]['valor']; ?>" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
                         <a class="btn btn-dark btn-social mx-2" href="<?php echo $lista_configuraciones[16]['valor']; ?>" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>

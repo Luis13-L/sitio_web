@@ -1,17 +1,42 @@
-
 <?php
-include("../../templates/header.php");
-include("../../bd.php");
+// admin/secciones/servicios/crear.php
+
+// 1) GUARDS: SIEMPRE antes de imprimir HTML
+require_once __DIR__ . '/../../auth_guard.php';
+require_role('admin'); // Solo administradores
+
+// 2) DB
+require_once __DIR__ . '/../../bd.php';
+
+// 3) CSRF (la sesión ya está abierta por auth_guard)
+if (empty($_SESSION['csrf_token'])) {
+  $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+$csrf_token = $_SESSION['csrf_token'];
 
 $errores = [];
 $mensajeOk = '';
 
+// Rutas destino
+$IMG_DIR = __DIR__ . "/../../../assets/img/services";
+$DOC_DIR = __DIR__ . "/../../../assets/docs/services";
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+  // 3.1) CSRF
+  if (empty($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
+    $errores[] = "Token CSRF inválido. Recarga la página e inténtalo de nuevo.";
+  }
+
   $titulo      = isset($_POST['titulo']) ? trim($_POST['titulo']) : '';
   $descripcion = isset($_POST['descripcion']) ? trim($_POST['descripcion']) : '';
 
+  if ($titulo === '') {
+    $errores[] = "El título es obligatorio.";
+  }
+
   $iconoNombre = '';
-  $pdfNombre   = null; // <- nuevo campo para almacenar el PDF
+  $pdfNombre   = null; // PDF opcional
 
   /* === Subida de ICONO (obligatorio) === */
   if (!empty($_FILES['icono']['name'])) {
@@ -31,12 +56,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       if (!in_array($ext, $permitidas, true)) {
         $errores[] = "Formato de ícono no permitido. Usa PNG/JPG/WebP/SVG.";
       } else {
-        $destDir = __DIR__ . "/../../../assets/img/services";
-        if (!is_dir($destDir)) { @mkdir($destDir, 0775, true); }
+        if (!is_dir($IMG_DIR)) { @mkdir($IMG_DIR, 0775, true); }
 
-        $base   = preg_replace('/[^a-z0-9_\-]/i', '_', pathinfo($name, PATHINFO_FILENAME));
-        $nuevo  = time() . "_" . $base . "." . $ext;
-        $dest   = $destDir . "/" . $nuevo;
+        // Nombre seguro
+        $base  = preg_replace('/[^a-z0-9_\-]/i', '_', pathinfo($name, PATHINFO_FILENAME));
+        $nuevo = time() . "_" . $base . "." . $ext;
+        $dest  = $IMG_DIR . "/" . $nuevo;
 
         if (!move_uploaded_file($tmp, $dest)) {
           $errores[] = "No se pudo guardar el ícono en el servidor.";
@@ -68,12 +93,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       if ($mime !== 'application/pdf') {
         $errores[] = "Solo se permite subir archivos PDF.";
       } else {
-        $docsDir = __DIR__ . "/../../../assets/docs/services";
-        if (!is_dir($docsDir)) { @mkdir($docsDir, 0775, true); }
-
+        if (!is_dir($DOC_DIR)) { @mkdir($DOC_DIR, 0775, true); }
         $safeBase = bin2hex(random_bytes(6));            // nombre único
-        $pdfNombre = time() . "_" . $safeBase . ".pdf";  // ej: 1730412345_ab12cd34ef56.pdf
-        $destPdf   = $docsDir . "/" . $pdfNombre;
+        $pdfNombre = time() . "_" . $safeBase . ".pdf";  // ej: 1730412345_ab12cd.pdf
+        $destPdf   = $DOC_DIR . "/" . $pdfNombre;
 
         if (!move_uploaded_file($tmp, $destPdf)) {
           $errores[] = "No se pudo guardar el PDF en el servidor.";
@@ -85,8 +108,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   /* === Insertar si todo OK === */
   if (empty($errores)) {
-    $sql = "INSERT INTO `tbl_servicios` (`ID`,`icono`,`titulo`,`descripcion`,`archivo`)
-            VALUES (NULL, :icono, :titulo, :descripcion, :archivo)";
+    $sql = "INSERT INTO `tbl_servicios` (`icono`,`titulo`,`descripcion`,`archivo`)
+            VALUES (:icono, :titulo, :descripcion, :archivo)";
     $sentencia = $conexion->prepare($sql);
     $sentencia->bindParam(":icono", $iconoNombre);
     $sentencia->bindParam(":titulo", $titulo);
@@ -94,14 +117,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $sentencia->bindParam(":archivo", $pdfNombre);
     $sentencia->execute();
 
+    // Renovar token para evitar reenvíos accidentales
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+
     header("Location: index.php?mensaje=" . urlencode("Registro creado con éxito."));
     exit;
   }
 }
-?>
 
+// 4) Render
+include("../../templates/header.php");
+?>
 <div class="card">
-  <div class="card-header">Crear Servicios</div>
+  <div class="card-header"><span style="font-weight:700; font-size:1.25rem;">Crear Servicios</span></div>
   <div class="card-body">
 
     <?php if (!empty($errores)): ?>
@@ -114,7 +142,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       </div>
     <?php endif; ?>
 
-    <form action="" method="post" enctype="multipart/form-data">
+    <form action="" method="post" enctype="multipart/form-data" autocomplete="off" novalidate class="js-save">
+      <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
+
       <div class="mb-3">
         <label for="icono" class="form-label">Imagen / ícono (PNG, JPG, WebP, SVG) máx. 2MB</label>
         <input type="file" class="form-control" name="icono" id="icono"
@@ -123,26 +153,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
       <div class="mb-3">
         <label for="titulo" class="form-label">Título:</label>
-        <input type="text" class="form-control" name="titulo" id="titulo" required>
+        <input type="text" class="form-control" name="titulo" id="titulo" required
+               value="<?= htmlspecialchars($_POST['titulo'] ?? '') ?>">
       </div>
 
       <div class="mb-3">
         <label for="descripcion" class="form-label">Descripción:</label>
-        <input type="text" class="form-control" name="descripcion" id="descripcion">
+        <input type="text" class="form-control" name="descripcion" id="descripcion"
+               value="<?= htmlspecialchars($_POST['descripcion'] ?? '') ?>">
       </div>
 
-      <!-- NUEVO: PDF opcional -->
+      <!-- PDF opcional -->
       <div class="mb-3">
         <label for="archivo" class="form-label">Documento PDF (opcional) — máx. 10MB</label>
         <input type="file" class="form-control" name="archivo" id="archivo" accept="application/pdf">
       </div>
 
-      <button type="submit" class="btn btn-success">Agregar</button>
-      <a class="btn btn-primary" href="index.php" role="button">Cancelar</a>
+      <div class="d-flex align-items-center gap-2 mt-3">
+        <!-- Agregar -->
+        <button type="submit"
+                class="btn btn-icon btn-outline-primary"
+                data-bs-toggle="tooltip" data-bs-placement="top"
+                title="Agregar">
+          <i class="fa-solid fa-paper-plane"></i>
+          <span class="visually-hidden">Agregar</span>
+        </button>
+
+        <!-- Cancelar -->
+        <a href="index.php"
+          class="btn btn-icon btn-outline-danger"
+          data-bs-toggle="tooltip" data-bs-placement="top"
+          title="Cancelar">
+          <i class="fa-solid fa-arrow-left"></i>
+          <span class="visually-hidden">Cancelar</span>
+        </a>
+      </div>
+
+
     </form>
 
   </div>
   <div class="card-footer text-muted"></div>
 </div>
-
+<script> AdminUX.attachSaveConfirm('.js-save'); </script>
 <?php include("../../templates/footer.php"); ?>
