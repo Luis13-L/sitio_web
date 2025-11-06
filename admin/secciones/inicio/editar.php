@@ -2,7 +2,7 @@
 // admin/secciones/inicio/editar.php
 
 require_once __DIR__ . '/../../auth_guard.php';
-require_role(['admin']); // solo admin edita
+require_role(['admin','user']); // ahora ambos pueden editar
 
 require_once __DIR__ . '/../../bd.php';
 
@@ -29,8 +29,8 @@ if (!$registro) {
   header("Location: index.php?mensaje=" . urlencode("Registro no encontrado.")); exit;
 }
 
-$componente = $registro['componente'];
-$imagen     = $registro['imagen'];
+$componente = $registro['componente'] ?? '';
+$imagen     = $registro['imagen'] ?? '';
 
 /* ========== ACTUALIZAR ========== */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -39,11 +39,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $mensaje = "Token CSRF inválido. Recarga la página e inténtalo nuevamente.";
   } else {
     $txtID      = (int)($_POST['txtID'] ?? 0);
-    $componente = trim($_POST['componente'] ?? $componente); // readonly en UI, pero resguardamos
+    // UI lo muestra readonly, pero mantenemos coherencia por si cambia a futuro:
+    $componente = trim($_POST['componente'] ?? $componente);
     $oldImagen  = $imagen;
     $newImagen  = null;
 
-    // 1) Actualizar componente (por coherencia)
+    // Asegurar que el componente sea uno esperado (opcional)
+    // $componente = in_array(strtolower($componente), ['logo','hero'], true) ? $componente : 'logo';
+
+    // 1) Actualizar componente por coherencia
     $up = $conexion->prepare("UPDATE tbl_inicioo SET componente = :componente WHERE id = :id");
     $up->bindParam(":componente", $componente);
     $up->bindParam(":id", $txtID, PDO::PARAM_INT);
@@ -52,27 +56,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // 2) Si suben nueva imagen
     if (!empty($_FILES["imagen"]["name"])) {
       $file  = $_FILES["imagen"];
-      $tmp   = $file["tmp_name"];
-      $name  = $file["name"];
-      $size  = (int)$file["size"];
-      $error = (int)$file["error"];
+      $tmp   = $file["tmp_name"] ?? '';
+      $name  = $file["name"] ?? '';
+      $size  = (int)($file["size"] ?? 0);
+      $error = (int)($file["error"] ?? UPLOAD_ERR_NO_FILE);
 
       if ($error !== UPLOAD_ERR_OK) {
         $mensaje = "Error al subir el archivo (código $error).";
       } elseif ($size > 3 * 1024 * 1024) {
         $mensaje = "El archivo supera el tamaño permitido (3 MB).";
       } else {
-        $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
-        $permitidas = ["png","jpg","jpeg","webp","svg"];
-        if (!in_array($ext, $permitidas, true)) {
+        // Validar MIME real
+        $finfo = new finfo(FILEINFO_MIME_TYPE);
+        $mime  = $finfo->file($tmp) ?: '';
+
+        $permitidos = [
+          'image/png'      => 'png',
+          'image/jpeg'     => 'jpg',
+          'image/webp'     => 'webp',
+          'image/svg+xml'  => 'svg',
+        ];
+
+        if (!array_key_exists($mime, $permitidos)) {
           $mensaje = "Formato no permitido. Usa PNG/JPG/WEBP/SVG.";
         } else {
           $destDir = __DIR__ . "/../../../assets/img";
           if (!is_dir($destDir)) { @mkdir($destDir, 0775, true); }
 
-          $base    = preg_replace('/[^a-z0-9_\-]/i', '_', pathinfo($name, PATHINFO_FILENAME));
-          $newName = time() . "_" . $base . "." . $ext;
-          $dest    = $destDir . "/" . $newName;
+          $safeBase = preg_replace('/[^a-z0-9_\-]/i', '_', pathinfo($name, PATHINFO_FILENAME));
+          $ext      = $permitidos[$mime];
+          $newName  = time() . "_" . bin2hex(random_bytes(4)) . "_" . $safeBase . "." . $ext;
+          $dest     = $destDir . "/" . $newName;
 
           if (!move_uploaded_file($tmp, $dest)) {
             $mensaje = "No se pudo guardar el archivo en el servidor.";
@@ -93,7 +107,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           $oldPath = __DIR__ . "/../../../assets/img/" . $oldImagen;
           if (is_file($oldPath)) { @unlink($oldPath); }
         }
-        $imagen = $newImagen; // para reflejar en el preview si hay error menor
+        $imagen = $newImagen; // para el preview si se queda en la misma vista por error menor
       }
     }
 
@@ -183,7 +197,6 @@ if (window.bootstrap) {
   if (!form) return;
 
   form.addEventListener('submit', function(e){
-    // permitir validaciones HTML5 primero
     if (!form.checkValidity()) return;
 
     e.preventDefault();
@@ -197,8 +210,8 @@ if (window.bootstrap) {
       cancelButtonText: 'No, volver',
       confirmButtonColor: '#0d6efd',
       cancelButtonColor: '#6c757d'
-    }).then((result) => {
-      if (result.isConfirmed) {
+    }).then((r) => {
+      if (r.isConfirmed) {
         Swal.fire({
           title: 'Guardando…',
           allowOutsideClick: false,

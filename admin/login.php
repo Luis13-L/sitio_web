@@ -234,7 +234,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <!-- Panel institucional -->
         <div class="col-lg-5 brand-pane p-4 p-lg-5 d-flex flex-column justify-content-between">
           <div>
-            <img class="logo mb-3" src="<?= htmlspecialchars($logoUrl) ?>" alt="Logo DIDEDUC Sololá">
+            <img class="logo mb-3" src="<?= htmlspecialchars($logoUrl) ?>" alt="Logotipo">
             <h1 class="h4 fw-semibold mb-1">Dirección Departamental de Educación de Sololá</h1>
             <p class="small mb-0">Portal de Administración</p>
           </div>

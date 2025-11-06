@@ -1,18 +1,15 @@
 <?php
 // admin/secciones/portafolio/crear.php
 
-// 1) Guardias
+// 1) Guardias según tu política (admin y user pueden crear)
 require_once __DIR__ . '/../../auth_guard.php';
-require_role(['admin']); // solo administradores
+require_permission('portafolio', 'create');
 
 // 2) DB
 require_once __DIR__ . '/../../bd.php';
 
-// 3) CSRF (auth_guard ya abrió la sesión)
-if (empty($_SESSION['csrf_token'])) {
-  $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-}
-$csrf_token = $_SESSION['csrf_token'];
+// 3) CSRF
+$csrf_token = ensure_csrf_token();
 
 // 4) Rutas
 $IMG_DIR = __DIR__ . "/../../../assets/img/portfolio";
@@ -23,9 +20,7 @@ $errores = [];
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   // CSRF
-  if (empty($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
-    $errores[] = "Token CSRF inválido. Recarga la página e inténtalo de nuevo.";
-  }
+  verify_csrf_or_die($_POST['csrf_token'] ?? null);
 
   // Inputs
   $titulo      = trim($_POST['titulo']      ?? '');
@@ -90,8 +85,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $ins->bindParam(':url',         $url);
     $ins->execute();
 
-    // Regenerar CSRF para evitar reenvíos
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    // Regenerar CSRF para siguiente uso
+    $csrf_token = ensure_csrf_token();
 
     header("Location: index.php?mensaje=" . urlencode("Noticia creada con éxito."));
     exit;
@@ -170,7 +165,6 @@ include("../../templates/header.php");
       </div><!-- /.row -->
 
       <div class="d-flex align-items-center gap-2 mt-4">
-        <!-- Crear -->
         <button type="submit"
                 class="btn btn-icon btn-brand-outline"
                 data-bs-toggle="tooltip" data-bs-placement="top"
@@ -179,7 +173,6 @@ include("../../templates/header.php");
           <span class="visually-hidden">Crear</span>
         </button>
 
-        <!-- Cancelar -->
         <a class="btn btn-icon btn-outline-danger"
            href="index.php"
            data-bs-toggle="tooltip" data-bs-placement="top"
@@ -195,17 +188,15 @@ include("../../templates/header.php");
 </div>
 
 <script>
-// Tooltips + Confirmación SweetAlert antes de crear
 (function(){
   if (window.bootstrap) {
     document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el));
   }
-
   const form = document.querySelector('form[action=""]');
   if (!form) return;
 
   form.addEventListener('submit', function(e){
-    if (!form.checkValidity()) return; // deja que HTML5 muestre los mensajes
+    if (!form.checkValidity()) return;
     e.preventDefault();
 
     Swal.fire({

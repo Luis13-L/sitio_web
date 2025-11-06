@@ -1,30 +1,10 @@
 <?php
 // Si tu header ya exige login/rol, basta con incluirlo.
-// Si no, descomenta las 2 líneas siguientes:
 // require_once __DIR__ . '/secciones/auth_guard.php';
 // require_login();
 
-require __DIR__ . '/bd.php'; ;
+require __DIR__ . '/bd.php';
 include(__DIR__ . "/templates/header.php");
-
-/* === Cargar logo/hero desde tbl_inicioo (opcional) === */
-$logoUrl = null;
-$heroUrl = null;
-try {
-  $q = $conexion->prepare("SELECT componente, imagen FROM tbl_inicioo ORDER BY id DESC");
-  $q->execute();
-  $rows = $q->fetchAll(PDO::FETCH_ASSOC);
-  foreach ($rows as $r) {
-    if (!$logoUrl && isset($r['componente']) && $r['componente'] === 'logo' && !empty($r['imagen'])) {
-      $logoUrl = "assets/img/" . $r['imagen'];
-    }
-    if (!$heroUrl && isset($r['componente']) && $r['componente'] === 'hero' && !empty($r['imagen'])) {
-      $heroUrl = "assets/img/" . $r['imagen'];
-    }
-  }
-} catch (\Throwable $e) {
-  // silencioso
-}
 
 /* === Conteos seguros === */
 function safe_count(PDO $cx, string $table): string {
@@ -71,11 +51,6 @@ $rol      = htmlspecialchars($_SESSION['rol'] ?? 'user');
       radial-gradient(800px 260px at 90% 0%, rgba(0,0,0,.12), transparent 60%);
     pointer-events:none;
   }
-  .dash-hero .hero-img{
-    position:absolute; inset:0; opacity:.18;
-    background-size: cover; background-position:center;
-    filter: saturate(1.05) contrast(1.05);
-  }
   .dash-hero .content{ position:relative; z-index:2; }
 
   .brand-badge{
@@ -83,11 +58,6 @@ $rol      = htmlspecialchars($_SESSION['rol'] ?? 'user');
     padding:12px 14px; background: rgba(255,255,255,.12);
     border-radius:10px; backdrop-filter: blur(3px);
     width:max-content;
-  }
-  .brand-badge img{
-    height:42px; width:auto; border-radius:6px; /* rectangular */
-    background:#fff;
-    padding:6px;
   }
   .brand-badge .text h6{ font-weight:700; letter-spacing:.2px; margin:0; }
   .brand-badge .text small{ opacity:.9; }
@@ -120,7 +90,6 @@ $rol      = htmlspecialchars($_SESSION['rol'] ?? 'user');
   .icon-pink{   background:#d63384; }
 
   @media (max-width: 576px){
-    .brand-badge img{ height:36px; border-radius:4px; }
     .dash-hero h2{ font-size:1.35rem; }
     .dash-hero p{  font-size:.95rem; }
   }
@@ -128,16 +97,11 @@ $rol      = htmlspecialchars($_SESSION['rol'] ?? 'user');
 
 <div class="container-xxl my-4">
 
-  <!-- ===== HERO ===== -->
+  <!-- ===== HERO (sin logo ni hero image) ===== -->
   <div class="dash-hero p-4 p-md-5 mb-4">
-    <?php if ($heroUrl): ?>
-      <div class="hero-img" style="background-image:url('<?= htmlspecialchars($heroUrl) ?>');"></div>
-    <?php endif; ?>
     <div class="overlay"></div>
-
     <div class="content">
       <div class="brand-badge mb-3">
-        <img src="<?= htmlspecialchars($logoUrl) ?>" alt="Logotipo">
         <div class="text">
           <h6 class="mb-1">Dirección Departamental de Educación de Sololá</h6>
           <small>Portal de Administración</small>
@@ -145,8 +109,10 @@ $rol      = htmlspecialchars($_SESSION['rol'] ?? 'user');
       </div>
 
       <h2 class="fw-bold mb-2">Hola, <?= $nombre ?> 👋</h2>
-      <p class="mb-3">Has iniciado sesión como <span class="badge bg-light text-dark"><?= $rol ?></span>. 
-        Usa los accesos rápidos o revisa el estado general del sitio.</p>
+      <p class="mb-3">
+        Has iniciado sesión como <span class="badge bg-light text-dark"><?= $rol ?></span>.
+        Usa los accesos rápidos o revisa el estado general del sitio.
+      </p>
 
       <div class="d-flex flex-wrap gap-2">
         <a href="secciones/portafolio/index.php" class="btn btn-light btn-sm">
@@ -236,7 +202,6 @@ $rol      = htmlspecialchars($_SESSION['rol'] ?? 'user');
   <div class="row g-3">
     <div class="col-12 col-lg-8">
       <div class="row g-3">
-        <!-- Noticias -->
         <div class="col-12 col-md-6">
           <a class="text-decoration-none d-block qa-card p-3 h-100" href="secciones/portafolio/index.php">
             <div class="d-flex align-items-start gap-3">
@@ -248,7 +213,6 @@ $rol      = htmlspecialchars($_SESSION['rol'] ?? 'user');
             </div>
           </a>
         </div>
-        <!-- Servicios -->
         <div class="col-12 col-md-6">
           <a class="text-decoration-none d-block qa-card p-3 h-100" href="secciones/servicios/index.php">
             <div class="d-flex align-items-start gap-3">
@@ -260,7 +224,6 @@ $rol      = htmlspecialchars($_SESSION['rol'] ?? 'user');
             </div>
           </a>
         </div>
-        <!-- Equipo -->
         <div class="col-12 col-md-6">
           <a class="text-decoration-none d-block qa-card p-3 h-100" href="secciones/equipo/index.php">
             <div class="d-flex align-items-start gap-3">
@@ -272,7 +235,6 @@ $rol      = htmlspecialchars($_SESSION['rol'] ?? 'user');
             </div>
           </a>
         </div>
-        <!-- Entradas / Historia -->
         <div class="col-12 col-md-6">
           <a class="text-decoration-none d-block qa-card p-3 h-100" href="secciones/historia/index.php">
             <div class="d-flex align-items-start gap-3">
@@ -284,7 +246,6 @@ $rol      = htmlspecialchars($_SESSION['rol'] ?? 'user');
             </div>
           </a>
         </div>
-        <!-- Portada/Logo -->
         <div class="col-12 col-md-6">
           <a class="text-decoration-none d-block qa-card p-3 h-100" href="secciones/inicio/index.php">
             <div class="d-flex align-items-start gap-3">
@@ -296,7 +257,6 @@ $rol      = htmlspecialchars($_SESSION['rol'] ?? 'user');
             </div>
           </a>
         </div>
-        <!-- Usuarios (solo admin) -->
         <?php if (($GLOBALS['_SESSION']['rol'] ?? '') === 'admin'): ?>
         <div class="col-12 col-md-6">
           <a class="text-decoration-none d-block qa-card p-3 h-100" href="secciones/usuarios/index.php">
@@ -312,9 +272,6 @@ $rol      = htmlspecialchars($_SESSION['rol'] ?? 'user');
         <?php endif; ?>
       </div>
     </div>
-
-    <!-- Columna lateral: Sistema -->
-    
   </div>
 </div>
 

@@ -2,32 +2,24 @@
 // admin/secciones/portafolio/index.php
 
 require_once __DIR__ . "/../../auth_guard.php";
-require_login(); // ambos roles pueden ver el listado
+require_login();                               // listado accesible a quien esté logueado
 require_once __DIR__ . "/../../bd.php";
 
-/* Rutas unificadas (carpeta portfolio) */
+/* Rutas (carpeta portfolio) */
 $IMG_DIR = __DIR__ . "/../../../assets/img/portfolio";
 $IMG_URL = "../../../assets/img/portfolio/";
 
-$isAdmin = (($_SESSION['rol'] ?? '') === 'admin');
+/* Permisos por acción (según tu auth_guard) */
+$canView   = can_access('portafolio', 'view');
+$canCreate = can_access('portafolio', 'create');
+$canEdit   = can_access('portafolio', 'edit');
+$canDelete = can_access('portafolio', 'delete');
 
-/* ===== CSRF para acciones ===== */
-if (!function_exists('ensure_csrf_token')) {
-  // Fallback sencillo por si no está definido en auth_guard
-  if (empty($_SESSION['csrf_token'])) {
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-  }
-  function ensure_csrf_token() { return $_SESSION['csrf_token']; }
-  function verify_csrf_or_die($token) {
-    if (empty($token) || !hash_equals($_SESSION['csrf_token'], $token)) {
-      http_response_code(400); die("CSRF token inválido.");
-    }
-  }
-}
+/* CSRF */
 $csrf_token = ensure_csrf_token();
 
-/* ===== ELIMINAR (solo admin, POST + CSRF) ===== */
-if ($isAdmin && $_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete') {
+/* ===== ELIMINAR: POST + CSRF, solo si tiene permiso ===== */
+if ($canDelete && $_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete') {
   verify_csrf_or_die($_POST['csrf_token'] ?? null);
 
   $id = $_POST['id'] ?? '';
@@ -37,19 +29,17 @@ if ($isAdmin && $_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? ''
   }
   $txtID = (int)$id;
 
-  // 1) obtener filename
+  // traer filename
   $st = $conexion->prepare("SELECT imagen FROM tbl_portafolio WHERE id = :id");
   $st->bindParam(":id", $txtID, PDO::PARAM_INT);
   $st->execute();
   $row = $st->fetch(PDO::FETCH_ASSOC);
 
   if ($row) {
-    // 2) borrar imagen
     if (!empty($row['imagen'])) {
       $imgPath = $IMG_DIR . "/" . $row['imagen'];
       if (is_file($imgPath)) { @unlink($imgPath); }
     }
-    // 3) borrar registro
     $del = $conexion->prepare("DELETE FROM tbl_portafolio WHERE id = :id");
     $del->bindParam(":id", $txtID, PDO::PARAM_INT);
     $del->execute();
@@ -76,7 +66,8 @@ include("../../templates/header.php");
 <div class="card">
   <div class="card-header d-flex justify-content-between align-items-center">
     <span style="font-weight:700; font-size:1.25rem;">Noticias</span>
-    <?php if ($isAdmin): ?>
+
+    <?php if ($canCreate): ?>
       <a class="btn btn-primary" href="crear.php" role="button">
         <i class="fa-solid fa-plus me-1"></i> Agregar registro
       </a>
@@ -90,9 +81,10 @@ include("../../templates/header.php");
     <?php if ($error): ?>
       <div class="alert alert-danger py-2 mb-3"><?= htmlspecialchars($error) ?></div>
     <?php endif; ?>
-    <?php if (!$isAdmin): ?>
+
+    <?php if (!$canCreate && !$canEdit && !$canDelete): ?>
       <div class="alert alert-info py-2 mb-3">
-        Modo solo lectura. Si necesitas editar, contacta a un administrador.
+        Modo solo lectura para tu usuario.
       </div>
     <?php endif; ?>
 
@@ -105,7 +97,7 @@ include("../../templates/header.php");
             <th scope="col" style="width:130px;">Imagen</th>
             <th scope="col">Descripción</th>
             <th scope="col" style="width:160px;">Categoría</th>
-            <?php if ($isAdmin): ?>
+            <?php if ($canEdit || $canDelete): ?>
               <th scope="col" class="icon-col" style="width:160px;">Acción</th>
             <?php endif; ?>
           </tr>
@@ -153,23 +145,27 @@ include("../../templates/header.php");
 
             <td><?= $cat ?></td>
 
-            <?php if ($isAdmin): ?>
+            <?php if ($canEdit || $canDelete): ?>
             <td class="cell-center">
               <div class="action-group">
-                <a class="btn btn-brand-outline btn-icon"
-                   href="editar.php?txtID=<?= $id ?>" title="Editar">
-                  <i class="fa-solid fa-pen"></i>
-                </a>
+                <?php if ($canEdit): ?>
+                  <a class="btn btn-brand-outline btn-icon"
+                     href="editar.php?txtID=<?= $id ?>" title="Editar">
+                    <i class="fa-solid fa-pen"></i>
+                  </a>
+                <?php endif; ?>
 
-                <form method="post" class="d-inline"
-                      onsubmit="return confirm('¿Eliminar este registro? También se borrará la imagen.');">
-                  <input type="hidden" name="action" value="delete">
-                  <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
-                  <input type="hidden" name="id" value="<?= $id ?>">
-                  <button type="submit" class="btn btn-danger btn-icon" title="Eliminar">
-                    <i class="fa-solid fa-trash"></i>
-                  </button>
-                </form>
+                <?php if ($canDelete): ?>
+                  <form method="post" class="d-inline"
+                        onsubmit="return confirm('¿Eliminar este registro? También se borrará la imagen.');">
+                    <input type="hidden" name="action" value="delete">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
+                    <input type="hidden" name="id" value="<?= $id ?>">
+                    <button type="submit" class="btn btn-danger btn-icon" title="Eliminar">
+                      <i class="fa-solid fa-trash"></i>
+                    </button>
+                  </form>
+                <?php endif; ?>
               </div>
             </td>
             <?php endif; ?>
@@ -177,7 +173,7 @@ include("../../templates/header.php");
         <?php endforeach; ?>
 
         <?php if (!$lista_portafolio): ?>
-          <tr><td colspan="<?= $isAdmin ? 6 : 5 ?>" class="text-center text-muted">No hay registros.</td></tr>
+          <tr><td colspan="<?= ($canEdit || $canDelete) ? 6 : 5 ?>" class="text-center text-muted">No hay registros.</td></tr>
         <?php endif; ?>
         </tbody>
       </table>

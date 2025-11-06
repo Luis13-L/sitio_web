@@ -2,10 +2,16 @@
 // admin/secciones/inicio/index.php
 
 require_once __DIR__ . "/../../auth_guard.php";
-require_login(); // listado visible para usuarios con sesión
+require_login(); // ambos roles con sesión
 require_once __DIR__ . "/../../bd.php";
 
-$isAdmin = (($_SESSION['rol'] ?? '') === 'admin');
+/* ===== Rol (robusto) ===== */
+$roleFromHelper  = function_exists('current_role') ? current_role() : null;
+$roleRaw         = $roleFromHelper ?: ($_SESSION['rol'] ?? '');
+$roleNormalized  = strtolower(trim((string)$roleRaw));
+
+/* Para este módulo, tanto admin como user pueden gestionar */
+$canManage = in_array($roleNormalized, ['admin','user'], true);
 
 // Rutas a imágenes
 $IMG_DIR = __DIR__ . "/../../../assets/img";
@@ -14,8 +20,8 @@ $IMG_URL = "../../../assets/img/";
 // CSRF para acciones
 $csrf_token = ensure_csrf_token();
 
-/* ===== ELIMINAR (solo admin, POST + CSRF) ===== */
-if ($isAdmin && $_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete') {
+/* ===== ELIMINAR (admin y user, POST + CSRF) ===== */
+if ($canManage && $_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete') {
   verify_csrf_or_die($_POST['csrf_token'] ?? null);
 
   $id = $_POST['id'] ?? '';
@@ -61,7 +67,7 @@ include("../../templates/header.php");
 <div class="card">
   <div class="card-header d-flex justify-content-between align-items-center">
     <span style="font-weight:700; font-size:1.25rem;">Portada y Logo</span>
-    <?php if ($isAdmin): ?>
+    <?php if ($canManage): ?>
       <a class="btn btn-primary" href="crear.php">Agregar registro</a>
     <?php endif; ?>
   </div>
@@ -81,7 +87,7 @@ include("../../templates/header.php");
             <th scope="col" style="width:70px;">ID</th>
             <th scope="col" style="width:220px;">Componente</th>
             <th scope="col" style="width:130px;">Imagen</th>
-            <?php if ($isAdmin): ?>
+            <?php if ($canManage): ?>
               <th scope="col" class="icon-col" style="width:160px;">Acciones</th>
             <?php endif; ?>
           </tr>
@@ -89,7 +95,7 @@ include("../../templates/header.php");
         <tbody>
           <?php foreach ($lista as $reg): ?>
             <?php
-              $id   = (int)($reg['ID'] ?? $reg['id']);
+              $id   = (int)($reg['ID'] ?? $reg['id'] ?? 0);
               $comp = htmlspecialchars($reg['componente'] ?? '');
               $img  = htmlspecialchars($reg['imagen'] ?? '');
             ?>
@@ -107,7 +113,7 @@ include("../../templates/header.php");
                 <?php endif; ?>
               </td>
 
-              <?php if ($isAdmin): ?>
+              <?php if ($canManage): ?>
                 <td class="cell-center">
                   <div class="action-group">
                     <a class="btn btn-brand-outline btn-icon"
@@ -132,7 +138,7 @@ include("../../templates/header.php");
 
           <?php if (!$lista): ?>
             <tr>
-              <td colspan="<?= $isAdmin ? 4 : 3 ?>" class="text-center text-muted">
+              <td colspan="<?= $canManage ? 4 : 3 ?>" class="text-center text-muted">
                 No hay registros.
               </td>
             </tr>
