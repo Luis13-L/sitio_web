@@ -10,47 +10,30 @@ $roleFromHelper  = function_exists('current_role') ? current_role() : null;
 $roleRaw         = $roleFromHelper ?: ($_SESSION['rol'] ?? '');
 $roleNormalized  = strtolower(trim((string)$roleRaw));
 
-/* Para este módulo, tanto admin como user pueden gestionar */
-$canManage = in_array($roleNormalized, ['admin','user'], true);
+/* Para este módulo, ambos roles pueden EDITAR; no habrá crear ni eliminar */
+$canEdit   = in_array($roleNormalized, ['admin','user'], true);
+$canCreate = false;
+$canDelete = false;
 
-// Rutas a imágenes
+/* Rutas a imágenes */
 $IMG_DIR = __DIR__ . "/../../../assets/img";
 $IMG_URL = "../../../assets/img/";
 
-// CSRF para acciones
-$csrf_token = ensure_csrf_token();
-
-/* ===== ELIMINAR (admin y user, POST + CSRF) ===== */
-if ($canManage && $_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete') {
-  verify_csrf_or_die($_POST['csrf_token'] ?? null);
-
-  $id = $_POST['id'] ?? '';
-  if (!ctype_digit((string)$id) || (int)$id <= 0) {
-    header("Location: index.php?error=" . urlencode("ID inválido.")); exit;
+/* CSRF (ya no se usa para delete porque está deshabilitado, pero no estorba) */
+if (function_exists('ensure_csrf_token')) {
+  $csrf_token = ensure_csrf_token();
+} else {
+  if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
   }
-  $txtID = (int)$id;
+  $csrf_token = $_SESSION['csrf_token'];
+}
 
-  // obtener filename
-  $st = $conexion->prepare("SELECT imagen FROM tbl_inicioo WHERE id = :id");
-  $st->bindParam(":id", $txtID, PDO::PARAM_INT);
-  $st->execute();
-  $row = $st->fetch(PDO::FETCH_ASSOC);
-
-  if ($row) {
-    // borrar archivo físico
-    if (!empty($row['imagen'])) {
-      $path = rtrim($IMG_DIR,'/')."/".$row['imagen'];
-      if (is_file($path)) { @unlink($path); }
-    }
-    // borrar registro
-    $del = $conexion->prepare("DELETE FROM tbl_inicioo WHERE id = :id");
-    $del->bindParam(":id", $txtID, PDO::PARAM_INT);
-    $del->execute();
-
-    header("Location: index.php?mensaje=" . urlencode("Registro eliminado.")); exit;
-  } else {
-    header("Location: index.php?error=" . urlencode("Registro no encontrado.")); exit;
-  }
+/* ===== ELIMINAR: Deshabilitado a nivel servidor =====
+   Si alguien intenta forzar un POST delete, lo ignoramos con error. */
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete') {
+  header("Location: index.php?error=" . urlencode("La eliminación está deshabilitada en este módulo."));
+  exit;
 }
 
 /* ===== LISTAR ===== */
@@ -67,9 +50,11 @@ include("../../templates/header.php");
 <div class="card">
   <div class="card-header d-flex justify-content-between align-items-center">
     <span style="font-weight:700; font-size:1.25rem;">Portada y Logo</span>
-    <?php if ($canManage): ?>
-      <a class="btn btn-primary" href="crear.php">Agregar registro</a>
-    <?php endif; ?>
+
+    <!-- Agregar deshabilitado -->
+    <button class="btn btn-primary" type="button" disabled title="Agregar deshabilitado en este módulo">
+      Agregar registro
+    </button>
   </div>
 
   <div class="card-body">
@@ -80,6 +65,10 @@ include("../../templates/header.php");
       <div class="alert alert-danger py-2 mb-3"><?= htmlspecialchars($error) ?></div>
     <?php endif; ?>
 
+    <div class="alert alert-info py-2 mb-3">
+      En <strong>Portada y Logo</strong> solo está disponible la acción <strong>Editar</strong>. La creación y eliminación están deshabilitadas.
+    </div>
+
     <div class="table-responsive-sm">
       <table class="table align-middle">
         <thead>
@@ -87,9 +76,7 @@ include("../../templates/header.php");
             <th scope="col" style="width:70px;">ID</th>
             <th scope="col" style="width:220px;">Componente</th>
             <th scope="col" style="width:130px;">Imagen</th>
-            <?php if ($canManage): ?>
-              <th scope="col" class="icon-col" style="width:160px;">Acciones</th>
-            <?php endif; ?>
+            <th scope="col" class="icon-col" style="width:120px;">Acción</th>
           </tr>
         </thead>
         <tbody>
@@ -113,32 +100,22 @@ include("../../templates/header.php");
                 <?php endif; ?>
               </td>
 
-              <?php if ($canManage): ?>
-                <td class="cell-center">
-                  <div class="action-group">
-                    <a class="btn btn-brand-outline btn-icon"
-                       href="editar.php?txtID=<?= $id ?>" title="Editar">
-                      <i class="fa-solid fa-pen"></i>
-                    </a>
-
-                    <form method="post" class="d-inline"
-                          onsubmit="return confirm('¿Eliminar este registro? También se borrará la imagen.');">
-                      <input type="hidden" name="action" value="delete">
-                      <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
-                      <input type="hidden" name="id" value="<?= $id ?>">
-                      <button type="submit" class="btn btn-danger btn-icon" title="Eliminar">
-                        <i class="fa-solid fa-trash"></i>
-                      </button>
-                    </form>
-                  </div>
-                </td>
-              <?php endif; ?>
+              <td class="cell-center">
+                <?php if ($canEdit): ?>
+                  <a class="btn btn-brand-outline btn-icon"
+                     href="editar.php?txtID=<?= $id ?>" title="Editar">
+                    <i class="fa-solid fa-pen"></i>
+                  </a>
+                <?php else: ?>
+                  <span class="text-muted">—</span>
+                <?php endif; ?>
+              </td>
             </tr>
           <?php endforeach; ?>
 
           <?php if (!$lista): ?>
             <tr>
-              <td colspan="<?= $canManage ? 4 : 3 ?>" class="text-center text-muted">
+              <td colspan="4" class="text-center text-muted">
                 No hay registros.
               </td>
             </tr>
@@ -150,3 +127,4 @@ include("../../templates/header.php");
 </div>
 
 <?php include("../../templates/footer.php"); ?>
+

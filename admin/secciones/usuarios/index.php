@@ -65,6 +65,10 @@ $error   = $_GET['error'] ?? '';
 include("../../templates/header.php");
 ?>
 
+<!-- SweetAlert2 para confirmación de ELIMINAR -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
 <div class="card">
   <div class="card-header d-flex justify-content-between align-items-center">
     <span style="font-weight:700; font-size:1.25rem;">Usuarios</span>
@@ -94,9 +98,14 @@ include("../../templates/header.php");
         </thead>
         <tbody>
         <?php foreach ($usuarios as $u): ?>
+          <?php
+            $uid    = (int)$u['id'];
+            $uname  = htmlspecialchars($u['usuario']);
+            $isSelf = ($uid === (int)($_SESSION['user_id'] ?? 0));
+          ?>
           <tr>
-            <td><?= (int)$u['id'] ?></td>
-            <td><strong><?= htmlspecialchars($u['usuario']) ?></strong></td>
+            <td><?= $uid ?></td>
+            <td><strong><?= $uname ?></strong></td>
             <td><?= htmlspecialchars($u['correo']) ?></td>
             <td>
               <?php if ($u['rol'] === 'admin'): ?>
@@ -118,21 +127,21 @@ include("../../templates/header.php");
               <div class="action-group">
                 <!-- Editar -->
                 <a class="btn btn-brand-outline btn-icon"
-                   href="editar.php?txtID=<?= (int)$u['id'] ?>"
+                   href="editar.php?txtID=<?= $uid ?>"
                    data-bs-toggle="tooltip" data-bs-placement="top" title="Editar">
                   <i class="fa-solid fa-user-pen"></i>
                 </a>
 
-                <!-- Eliminar por POST + CSRF -->
-                <form method="post" class="d-inline js-delete">
+                <!-- Eliminar por POST + CSRF con SweetAlert2 -->
+                <form method="post" class="d-inline js-delete" data-item="<?= $uname ?>">
                   <input type="hidden" name="action" value="delete">
                   <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
-                  <input type="hidden" name="id" value="<?= (int)$u['id'] ?>">
+                  <input type="hidden" name="id" value="<?= $uid ?>">
                   <button type="submit"
                           class="btn btn-danger btn-icon"
                           data-bs-toggle="tooltip" data-bs-placement="top"
-                          title="<?= ((int)$u['id'] === (int)($_SESSION['user_id'] ?? 0)) ? 'No puedes eliminar tu usuario' : 'Eliminar' ?>"
-                          <?= ((int)$u['id'] === (int)($_SESSION['user_id'] ?? 0)) ? 'disabled' : '' ?>>
+                          title="<?= $isSelf ? 'No puedes eliminar tu usuario' : 'Eliminar' ?>"
+                          <?= $isSelf ? 'disabled' : '' ?>>
                     <i class="fa-solid fa-user-xmark"></i>
                   </button>
                 </form>
@@ -152,9 +161,59 @@ include("../../templates/header.php");
   </div>
 </div>
 
-<!-- Activa confirm de borrado y tooltips -->
 <script>
-  AdminUX.attachDeleteConfirms(); // SweetAlert en formularios .js-delete
+  // Tooltips si Bootstrap está cargado
+  (function(){
+    if (window.bootstrap) {
+      document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el));
+    }
+  })();
+
+  // SweetAlert2 para confirmación de ELIMINAR (con fallback a confirm)
+  (function attachSwalDelete(){
+    document.querySelectorAll('form.js-delete').forEach(function(form){
+      if (form.dataset.confirmBound === '1') return;
+      form.dataset.confirmBound = '1';
+
+      form.addEventListener('submit', async function(ev){
+        ev.preventDefault();
+
+        // Si el botón está deshabilitado (ej. usuario actual), no hacemos nada
+        const btn = this.querySelector('button[type="submit"]');
+        if (btn && btn.disabled) return;
+
+        const usuario = this.dataset.item || 'este usuario';
+        let ok = false;
+
+        if (window.Swal) {
+          const r = await Swal.fire({
+            icon: 'warning',
+            title: 'Eliminar usuario',
+            html: `¿Seguro que deseas eliminar a <b>${usuario}</b>?`,
+            showCancelButton: true,
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar',
+            reverseButtons: true,
+            focusCancel: true,
+            confirmButtonColor: '#d33'
+          });
+          ok = r.isConfirmed;
+        } else {
+          ok = window.confirm('¿Eliminar este usuario?');
+        }
+
+        if (!ok) return;
+
+        // Bloqueo de doble envío + spinner
+        if (btn) {
+          btn.disabled = true;
+          btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+        }
+
+        this.submit();
+      });
+    });
+  })();
 </script>
 
 <?php include("../../templates/footer.php"); ?>

@@ -66,6 +66,10 @@ $error   = $_GET['error'] ?? '';
 include("../../templates/header.php");
 ?>
 
+<!-- SweetAlert2 (solo confirmación de ELIMINAR) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
 <div class="card">
   <div class="card-header d-flex justify-content-between align-items-center">
     <span style="font-weight:700; font-size:1.25rem;">Entradas (Historia / Timeline)</span>
@@ -109,6 +113,9 @@ include("../../templates/header.php");
             $tit   = htmlspecialchars($reg['titulo'] ?? '');
             $desc  = htmlspecialchars($reg['descripcion'] ?? '');
             $img   = htmlspecialchars($reg['imagen'] ?? '');
+            // etiqueta para el modal: fecha + título si existen
+            $label = trim($fecha . ' — ' . $tit);
+            if ($label === '—') { $label = "este registro"; }
           ?>
           <tr>
             <td><?= $id ?></td>
@@ -135,8 +142,8 @@ include("../../templates/header.php");
                     <i class="fa-solid fa-pen"></i>
                   </a>
 
-                  <form method="post" class="d-inline"
-                        onsubmit="return confirm('¿Eliminar este registro? También se borrará la imagen.');">
+                  <!-- Eliminar con SweetAlert2 -->
+                  <form method="post" class="d-inline js-delete" data-item="<?= htmlspecialchars($label) ?>">
                     <input type="hidden" name="action" value="delete">
                     <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
                     <input type="hidden" name="id" value="<?= $id ?>">
@@ -161,4 +168,42 @@ include("../../templates/header.php");
   </div>
 </div>
 
+<!-- Confirmación SweetAlert2 SOLO para eliminar -->
+<script>
+  (function attachSwalDelete(){
+    document.querySelectorAll('form.js-delete').forEach(function(form){
+      if (form.dataset.confirmBound === '1') return;
+      form.dataset.confirmBound = '1';
+
+      form.addEventListener('submit', async function(ev){
+        ev.preventDefault();
+        const titulo = this.dataset.item || 'este registro';
+
+        const r = await Swal.fire({
+          icon: 'warning',
+          title: 'Eliminar entrada',
+          html: `¿Seguro que deseas eliminar <b>${titulo}</b>?<br><small>También se borrará la imagen asociada.</small>`,
+          showCancelButton: true,
+          confirmButtonText: 'Sí, eliminar',
+          cancelButtonText: 'Cancelar',
+          reverseButtons: true,
+          focusCancel: true,
+          confirmButtonColor: '#d33'
+        });
+
+        if (!r.isConfirmed) return;
+
+        // Bloquear botón y spinner para evitar doble submit
+        const btn = this.querySelector('button[type="submit"]');
+        if (btn) {
+          btn.disabled = true;
+          btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+        }
+        this.submit();
+      });
+    });
+  })();
+</script>
+
 <?php include("../../templates/footer.php"); ?>
+

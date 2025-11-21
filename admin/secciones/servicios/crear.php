@@ -128,6 +128,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // 4) Render
 include("../../templates/header.php");
 ?>
+<!-- SweetAlert2 SOLO para confirmación de CREAR -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
 <div class="card">
   <div class="card-header"><span style="font-weight:700; font-size:1.25rem;">Crear Servicios</span></div>
   <div class="card-body">
@@ -142,7 +146,7 @@ include("../../templates/header.php");
       </div>
     <?php endif; ?>
 
-    <form action="" method="post" enctype="multipart/form-data" autocomplete="off" novalidate class="js-save">
+    <form action="" method="post" enctype="multipart/form-data" autocomplete="off" novalidate class="js-confirm-save">
       <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
 
       <div class="mb-3">
@@ -172,7 +176,7 @@ include("../../templates/header.php");
       <div class="d-flex align-items-center gap-2 mt-3">
         <!-- Agregar -->
         <button type="submit"
-                class="btn btn-icon btn-outline-primary"
+                class="btn btn-icon btn-outline-primary btn-submit-create"
                 data-bs-toggle="tooltip" data-bs-placement="top"
                 title="Agregar">
           <i class="fa-solid fa-paper-plane"></i>
@@ -188,12 +192,58 @@ include("../../templates/header.php");
           <span class="visually-hidden">Cancelar</span>
         </a>
       </div>
-
-
     </form>
 
   </div>
   <div class="card-footer text-muted"></div>
 </div>
-<script> AdminUX.attachSaveConfirm('.js-save'); </script>
+
+<script>
+  // Confirmación "Guardar/Crear" con SweetAlert2; fallback a confirm() si no carga
+  (function attachSwalSave(){
+    document.querySelectorAll('form.js-confirm-save').forEach(function(form){
+      if (form.dataset.saveBound === '1') return;
+      form.dataset.saveBound = '1';
+
+      form.addEventListener('submit', async function(ev){
+        // Evita doble confirmación si ya fue aprobada
+        if (this.dataset.confirmed === '1') return;
+        ev.preventDefault();
+
+        // Mensaje dinámico con el título si existe
+        const tituloInput = this.querySelector('#titulo');
+        const nombre = tituloInput && tituloInput.value ? tituloInput.value : 'este registro';
+
+        let ok = false;
+        if (window.Swal) {
+          const res = await Swal.fire({
+            icon: 'question',
+            title: 'Guardar cambios',
+            html: `¿Estás seguro que quieres crear <b>${nombre}</b>?`,
+            showCancelButton: true,
+            confirmButtonText: 'Sí, crear',
+            cancelButtonText: 'No, volver',
+            reverseButtons: true,
+            focusCancel: true
+          });
+          ok = res.isConfirmed;
+        } else {
+          ok = window.confirm('¿Crear el registro?');
+        }
+
+        if (!ok) return;
+
+        // Marcar como confirmado y bloquear botón para evitar doble envío
+        this.dataset.confirmed = '1';
+        const btn = this.querySelector('.btn-submit-create');
+        if (btn) {
+          btn.disabled = true;
+          btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+        }
+        this.submit();
+      });
+    });
+  })();
+</script>
+
 <?php include("../../templates/footer.php"); ?>

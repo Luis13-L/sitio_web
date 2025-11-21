@@ -96,6 +96,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // 6) Render
 include("../../templates/header.php");
 ?>
+<!-- SweetAlert2 solo para confirmación de CREAR -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
 <div class="card">
   <div class="card-header">
     <span style="font-weight:700; font-size:1.25rem;">Crear noticia</span>
@@ -112,7 +116,7 @@ include("../../templates/header.php");
       </div>
     <?php endif; ?>
 
-    <form action="" method="post" enctype="multipart/form-data" autocomplete="off" novalidate>
+    <form action="" method="post" enctype="multipart/form-data" autocomplete="off" novalidate class="js-confirm-create">
       <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
 
       <div class="row g-3">
@@ -166,7 +170,7 @@ include("../../templates/header.php");
 
       <div class="d-flex align-items-center gap-2 mt-4">
         <button type="submit"
-                class="btn btn-icon btn-brand-outline"
+                class="btn btn-icon btn-brand-outline btn-submit-create"
                 data-bs-toggle="tooltip" data-bs-placement="top"
                 title="Crear">
           <i class="fa-solid fa-paper-plane"></i>
@@ -188,34 +192,64 @@ include("../../templates/header.php");
 </div>
 
 <script>
-(function(){
-  if (window.bootstrap) {
-    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el));
-  }
-  const form = document.querySelector('form[action=""]');
-  if (!form) return;
+  // Tooltips Bootstrap (si está cargado)
+  (function(){
+    if (window.bootstrap) {
+      document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el));
+    }
+  })();
 
-  form.addEventListener('submit', function(e){
-    if (!form.checkValidity()) return;
-    e.preventDefault();
+  // Confirmación al CREAR (Swal con fallback) + anti doble envío
+  (function attachCreateConfirm(){
+    const form = document.querySelector('form.js-confirm-create');
+    if (!form || form.dataset.bound === '1') return;
+    form.dataset.bound = '1';
 
-    Swal.fire({
-      icon: 'question',
-      title: 'Crear noticia',
-      text: '¿Deseas crear esta noticia con los datos ingresados?',
-      showCancelButton: true,
-      confirmButtonText: 'Sí, crear',
-      cancelButtonText: 'No, volver',
-      confirmButtonColor: '#0d6efd',
-      cancelButtonColor: '#6c757d'
-    }).then((r)=>{
-      if (r.isConfirmed) {
-        Swal.fire({title:'Guardando…', allowOutsideClick:false, allowEscapeKey:false, didOpen:()=>Swal.showLoading()});
-        form.submit();
+    form.addEventListener('submit', async function(e){
+      // evita múltiple confirmación
+      if (this.dataset.confirmed === '1') return;
+      // valida HTML5 primero
+      if (!this.checkValidity()) return;
+      e.preventDefault();
+
+      const titulo = (this.querySelector('#titulo')?.value || 'esta noticia').trim();
+
+      let ok = false;
+      if (window.Swal) {
+        const res = await Swal.fire({
+          icon: 'question',
+          title: 'Crear noticia',
+          html: `¿Deseas crear <b>${titulo}</b> con los datos ingresados?`,
+          showCancelButton: true,
+          confirmButtonText: 'Sí, crear',
+          cancelButtonText: 'No, volver',
+          reverseButtons: true,
+          focusCancel: true,
+          confirmButtonColor: '#0d6efd'
+        });
+        ok = res.isConfirmed;
+      } else {
+        ok = window.confirm('¿Crear la noticia?');
       }
-    });
-  }, {passive:false});
-})();
+
+      if (!ok) return;
+
+      // bloquear botón + spinner
+      this.dataset.confirmed = '1';
+      const btn = this.querySelector('.btn-submit-create');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+      }
+
+      // loading modal (si Swal)
+      if (window.Swal) {
+        Swal.fire({title:'Guardando…', allowOutsideClick:false, allowEscapeKey:false, didOpen:()=>Swal.showLoading()});
+      }
+
+      this.submit();
+    }, {passive:false});
+  })();
 </script>
 
 <?php include("../../templates/footer.php"); ?>

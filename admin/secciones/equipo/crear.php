@@ -11,10 +11,14 @@ require_once __DIR__ . '/../../bd.php';
 $IMG_DIR = __DIR__ . "/../../../assets/img/team";
 
 /* ==== CSRF ==== */
-if (empty($_SESSION['csrf_token'])) {
-  $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+if (function_exists('ensure_csrf_token')) {
+  $csrf_token = ensure_csrf_token();
+} else {
+  if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+  }
+  $csrf_token = $_SESSION['csrf_token'];
 }
-$csrf_token = $_SESSION['csrf_token'];
 
 $errores = [];
 
@@ -94,7 +98,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $st->execute();
 
     // Rotar token para la siguiente operación
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    if (function_exists('ensure_csrf_token')) {
+      $csrf_token = ensure_csrf_token(); // regenera
+    } else {
+      $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
 
     header("Location: index.php?mensaje=" . urlencode("Registro agregado con éxito"));
     exit;
@@ -103,6 +111,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 ?>
 
 <?php include("../../templates/header.php"); ?>
+<!-- SweetAlert2 (confirmación de CREAR) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
 <div class="card">
   <div class="card-header"><span style="font-weight:700; font-size:1.25rem;">Datos del personal</span></div>
 
@@ -117,7 +129,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       </div>
     <?php endif; ?>
 
-    <form action="" method="post" enctype="multipart/form-data" autocomplete="off" novalidate>
+    <form action="" method="post" enctype="multipart/form-data" autocomplete="off" novalidate class="js-confirm-create">
       <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
 
       <div class="mb-3">
@@ -130,29 +142,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <div class="mb-3">
         <label for="nombrecompleto" class="form-label">Nombre completo</label>
         <input type="text" class="form-control" name="nombrecompleto" id="nombrecompleto"
-               placeholder="Nombre" minlength="3" required>
+               placeholder="Nombre" minlength="3" required
+               value="<?= htmlspecialchars($_POST['nombrecompleto'] ?? '') ?>">
       </div>
 
       <div class="mb-3">
         <label for="puesto" class="form-label">Puesto</label>
-        <input type="text" class="form-control" name="puesto" id="puesto" placeholder="Puesto">
+        <input type="text" class="form-control" name="puesto" id="puesto" placeholder="Puesto"
+               value="<?= htmlspecialchars($_POST['puesto'] ?? '') ?>">
       </div>
 
       <div class="mb-3">
         <label for="correo" class="form-label">Correo</label>
-        <input type="email" class="form-control" name="correo" id="correo" placeholder="correo@dominio.com">
+        <input type="email" class="form-control" name="correo" id="correo" placeholder="correo@dominio.com"
+               value="<?= htmlspecialchars($_POST['correo'] ?? '') ?>">
       </div>
 
       <div class="mb-3">
         <label for="linkedin" class="form-label">LinkedIn (URL)</label>
         <input type="url" class="form-control" name="linkedin" id="linkedin"
-               placeholder="https://www.linkedin.com/in/usuario">
+               placeholder="https://www.linkedin.com/in/usuario"
+               value="<?= htmlspecialchars($_POST['linkedin'] ?? '') ?>">
       </div>
 
-      <!-- Botonera con iconos (coherente con Servicios) -->
+      <!-- Botonera con iconos (coherente con otras secciones) -->
       <div class="d-flex align-items-center gap-2 mt-3">
         <button type="submit"
-                class="btn btn-icon btn-outline-primary"
+                class="btn btn-icon btn-outline-primary btn-submit-create"
                 data-bs-toggle="tooltip" data-bs-placement="top"
                 title="Agregar">
           <i class="fa-solid fa-paper-plane"></i>
@@ -174,10 +190,59 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </div>
 
 <script>
-  // activar tooltips en los iconos
+  // Tooltips si está Bootstrap
   if (window.bootstrap) {
     document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el));
   }
+
+  // Confirmación al CREAR (Swal con fallback) + anti doble envío
+  (function attachCreateConfirm(){
+    const form = document.querySelector('form.js-confirm-create');
+    if (!form || form.dataset.bound === '1') return;
+    form.dataset.bound = '1';
+
+    form.addEventListener('submit', async function(e){
+      if (this.dataset.confirmed === '1') return;       // evita doble confirmación
+      if (!this.checkValidity()) return;                 // primero validar HTML5
+      e.preventDefault();
+
+      const nombre = (this.querySelector('#nombrecompleto')?.value || 'este registro').trim();
+
+      let ok = false;
+      if (window.Swal) {
+        const res = await Swal.fire({
+          icon: 'question',
+          title: 'Agregar miembro del equipo',
+          html: `¿Deseas crear a <b>${nombre}</b> con la información ingresada?`,
+          showCancelButton: true,
+          confirmButtonText: 'Sí, crear',
+          cancelButtonText: 'No, volver',
+          reverseButtons: true,
+          focusCancel: true,
+          confirmButtonColor: '#0d6efd'
+        });
+        ok = res.isConfirmed;
+      } else {
+        ok = window.confirm('¿Crear el registro?');
+      }
+
+      if (!ok) return;
+
+      // bloquear botón + spinner
+      this.dataset.confirmed = '1';
+      const btn = this.querySelector('.btn-submit-create');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+      }
+
+      if (window.Swal) {
+        Swal.fire({title:'Guardando…', allowOutsideClick:false, allowEscapeKey:false, didOpen:()=>Swal.showLoading()});
+      }
+
+      this.submit();
+    }, {passive:false});
+  })();
 </script>
 
 <?php include("../../templates/footer.php"); ?>

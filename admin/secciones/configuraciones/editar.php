@@ -113,7 +113,7 @@ include("../../templates/header.php");
       <div class="mb-3">
         <label for="nombreConfiguracion" class="form-label">Nombre</label>
         <input type="text" class="form-control" id="nombreConfiguracion" name="nombreConfiguracion"
-               value="<?= htmlspecialchars($nombreConfiguracion) ?>"
+               value="<?= htmlspecialchars($nombreConfiguracion) ?>" readonly
                placeholder="Nombre de la configuración" required minlength="3">
       </div>
 

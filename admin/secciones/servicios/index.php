@@ -68,7 +68,9 @@ $error   = $_GET['error'] ?? '';
 include("../../templates/header.php");
 ?>
 
-
+<!-- SweetAlert2 (solo para confirmación de ELIMINAR) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
 
 <div class="card">
   <div class="card-header d-flex justify-content-between align-items-center">
@@ -85,7 +87,7 @@ include("../../templates/header.php");
     <?php if ($error): ?>
       <div class="alert alert-danger py-2 mb-3"><?= htmlspecialchars($error) ?></div>
     <?php endif; ?>
-        <?php if (!$isAdmin): ?>
+    <?php if (!$isAdmin): ?>
       <div class="alert alert-info py-2 mb-3">
         Modo solo lectura. Si necesitas editar, contacta a un administrador.
       </div>
@@ -99,7 +101,6 @@ include("../../templates/header.php");
             <th scope="col" style="width:120px;">Imagen</th>
             <th scope="col">Título</th>
             <th scope="col">Descripción</th>
-
             <th scope="col" class="icon-col" style="width:120px;">PDF</th>
             <?php if ($isAdmin): ?>
               <th scope="col" class="icon-col" style="width:160px;">Acción</th>
@@ -138,29 +139,28 @@ include("../../templates/header.php");
               <?php endif; ?>
             </td>
 
+            <?php if ($isAdmin): ?>
+              <td class="cell-center">
+                <div class="action-group">
+                  <a class="btn btn-brand-outline btn-icon"
+                    href="editar.php?txtID=<?= (int)$reg['ID']; ?>" title="Editar">
+                    <i class="fa-solid fa-pen"></i>
+                  </a>
 
-
-              <?php if ($isAdmin): ?>
-                <td class="cell-center">
-                  <div class="action-group">
-                    <a class="btn btn-brand-outline btn-icon"
-                      href="editar.php?txtID=<?= (int)$reg['ID']; ?>" title="Editar">
-                      <i class="fa-solid fa-pen"></i>
-                    </a>
-
-                    <form method="post" class="d-inline js-delete">
-                      <input type="hidden" name="action" value="delete">
-                      <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
-                      <input type="hidden" name="id" value="<?= (int)$reg['ID']; ?>">
-                      <button type="submit" class="btn btn-danger btn-icon" title="Eliminar">
-                        <i class="fa-solid fa-trash"></i>
-                      </button>
-                    </form>
-
-                  </div>
-                </td>
-              <?php endif; ?>
-
+                  <!-- FORM ELIMINAR con SweetAlert2 -->
+                  <form method="post"
+                        class="d-inline js-delete"
+                        data-item="<?= htmlspecialchars($reg['titulo']) ?>">
+                    <input type="hidden" name="action" value="delete">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
+                    <input type="hidden" name="id" value="<?= (int)$reg['ID']; ?>">
+                    <button type="submit" class="btn btn-danger btn-icon" title="Eliminar">
+                      <i class="fa-solid fa-trash"></i>
+                    </button>
+                  </form>
+                </div>
+              </td>
+            <?php endif; ?>
 
           </tr>
           <?php endforeach; ?>
@@ -178,8 +178,43 @@ include("../../templates/header.php");
     </div>
   </div>
 </div>
+
+<!-- Confirmación SweetAlert2 SOLO para eliminar -->
 <script>
-  AdminUX.attachDeleteConfirms();
+  (function attachSwalDelete(){
+    document.querySelectorAll('form.js-delete').forEach(function(form){
+      if (form.dataset.confirmBound === '1') return;
+      form.dataset.confirmBound = '1';
+
+      form.addEventListener('submit', async function(ev){
+        ev.preventDefault();
+        const titulo = this.dataset.item || 'este registro';
+
+        const r = await Swal.fire({
+          icon: 'warning',
+          title: 'Eliminar registro',
+          html: `¿Estás seguro que deseas eliminar <b>${titulo}</b>?<br><small>Esta acción no se puede deshacer.</small>`,
+          showCancelButton: true,
+          confirmButtonText: 'Sí, eliminar',
+          cancelButtonText: 'Cancelar',
+          reverseButtons: true,
+          focusCancel: true,
+          confirmButtonColor: '#d33'
+        });
+
+        if (!r.isConfirmed) return;
+
+        // UX: bloquear botón y spinner para evitar doble submit
+        const btn = this.querySelector('button[type="submit"]');
+        if (btn) {
+          btn.disabled = true;
+          btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+        }
+        this.submit();
+      });
+    });
+  })();
 </script>
 
 <?php include("../../templates/footer.php"); ?>
+

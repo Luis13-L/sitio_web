@@ -167,7 +167,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   .brand-pane .logo{
     width: 180px;                  /* LOGO rectangular más pequeño en móvil */
     height: auto;                  /* mantiene proporción */
-    border-radius: 4px;            /* si lo quieres 100% recto, usa 0 */
+    border-radius: 4px;            
   }
   .brand-pane h1,
   .brand-pane .h4{                 /* título largo en 2 líneas sin desbordar */
@@ -288,7 +288,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
 
             <button class="btn btn-brand w-100 py-2" type="submit">
-              <i class="fa-solid fa-right-to-bracket me-2"></i>Entrar
+              <i class="fa-solid fa-right-to-bracket me-2"></i>Ingresar
             </button>
 
             <p class="small-muted mt-3 mb-0">
